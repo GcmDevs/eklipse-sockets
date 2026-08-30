@@ -1,0 +1,9 @@
+# Ignore artifacts:
+.vscode
+dist
+node_modules
+@common/application/enabled-modules
+@common/domain/types
+general/@types
+@common/infrastructure/services/consecutivo.ts
+inventario/@types
