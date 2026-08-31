@@ -17,6 +17,7 @@ export const CHAT_EVENTS = {
   openConversation: 'chat:conversation:open',
   markConversationRead: 'chat:conversation:read',
   loadPreviousMessages: 'chat:messages:previous',
+  typing: 'chat:typing',
   sendMessage: 'chat:message:send',
   editMessage: 'chat:message:edit',
   deleteMessage: 'chat:message:delete',

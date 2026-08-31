@@ -38,6 +38,8 @@ import type {
   ChatPresence,
   ChatSecurityState,
   ChatSecurityUnlockDetails,
+  ChatTypingPayload,
+  ChatTypingState,
   ChatUser,
   LoadPreviousChatMessagesPayload,
   OpenConversationPayload,
@@ -57,8 +59,9 @@ import {
 } from '../../file-saver/locations';
 import { VALID_HOSTS } from '../../app.environments';
 import { FileServerRegistry } from '../../file-saver/registry';
+import { ADMINS } from './application/constants';
 
-const ONLINE_USERS_COUNT_ALLOWED_DOCUMENTS = new Set(['1065819503', '7574298']);
+const ONLINE_USERS_COUNT_ALLOWED_DOCUMENTS = new Set(ADMINS);
 const CHAT_SECURITY_LOCK_DELAY_MS = 10 * 60 * 1000;
 
 @WebSocketGateway({
@@ -294,6 +297,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     const user = client.data.chatUser as RegisteredChatUser | undefined;
     if (!user) return;
 
+    void this.stopClientTyping(client, user);
     this.unregisterClient(user.document, client);
     this.clearSecurityTimeout(client.id);
     this.changeConnectionCount(user.document, -1);
@@ -309,6 +313,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     const currentUser = client.data.chatUser as RegisteredChatUser | undefined;
     if (!currentUser) return this.unauthorized();
     if (this.isChatLocked(client)) return this.chatLocked();
+    await this.stopClientTyping(client, currentUser);
     this.touchSecurityActivity(client);
 
     let registeredCurrentUser: RegisteredChatUser | undefined;
@@ -352,6 +357,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     const currentUser = client.data.chatUser as RegisteredChatUser | undefined;
     if (!currentUser) return this.unauthorized();
     if (this.isChatLocked(client)) return this.chatLocked();
+    await this.stopClientTyping(client, currentUser);
     this.touchSecurityActivity(client);
 
     if (!payload.conversationId) return { ok: false, error: 'La conversación no es válida.' };
@@ -451,6 +457,34 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     }
   }
 
+  @SubscribeMessage(CHAT_EVENTS.typing)
+  async updateTyping(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: ChatTypingPayload
+  ): Promise<void> {
+    const currentUser = client.data.chatUser as RegisteredChatUser | undefined;
+    if (!currentUser) return;
+    if (this.isChatLocked(client)) {
+      await this.stopClientTyping(client, currentUser);
+      return;
+    }
+
+    const conversationId = Number(payload?.conversationId);
+    if (!Number.isSafeInteger(conversationId) || conversationId <= 0) return;
+
+    try {
+      if (payload?.typing === true) {
+        await this.startClientTyping(client, currentUser, conversationId);
+        this.touchSecurityActivity(client);
+        return;
+      }
+
+      if (payload?.typing === false) await this.stopClientTyping(client, currentUser);
+    } catch {
+      await this.stopClientTyping(client, currentUser);
+    }
+  }
+
   @SubscribeMessage(CHAT_EVENTS.sendMessage)
   async sendMessage(
     @ConnectedSocket() client: Socket,
@@ -459,6 +493,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     const currentUser = client.data.chatUser as RegisteredChatUser | undefined;
     if (!currentUser) return this.rejectedMessage('No fue posible identificar tu sesión.');
     if (this.isChatLocked(client)) return this.chatLocked(true);
+    await this.stopClientTyping(client, currentUser);
     this.touchSecurityActivity(client);
 
     const content = typeof payload?.content === 'string' ? payload.content.trim() : '';
@@ -701,6 +736,8 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   private lockClient(client: Socket): void {
     if (client.data.chatSecurityEnabled !== true) return;
 
+    const currentUser = client.data.chatUser as RegisteredChatUser | undefined;
+    if (currentUser) void this.stopClientTyping(client, currentUser);
     this.clearSecurityTimeout(client.id);
     client.data.chatSecurityUnlocked = false;
     client.emit(CHAT_EVENTS.securityState, this.securityStateFor(client));
@@ -725,10 +762,60 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
       client.data.chatSecurityEnabled = enabled;
       client.data.chatSecurityUnlocked = !enabled;
+      if (enabled) void this.stopClientTyping(client, user);
       this.clearSecurityTimeout(client.id);
       client.emit(CHAT_EVENTS.securityState, this.securityStateFor(client));
       if (!enabled) void this.emitBootstrap(client, user);
     }
+  }
+
+  private async startClientTyping(
+    client: Socket,
+    currentUser: RegisteredChatUser,
+    conversationId: number
+  ): Promise<void> {
+    const activeConversationId = Number(client.data.chatTypingConversationId);
+    if (activeConversationId !== conversationId) {
+      await this.stopClientTyping(client, currentUser);
+      const participants = await this.store.participants(conversationId);
+      if (!participants.some(participant => participant.id === currentUser.id)) return;
+
+      client.data.chatTypingConversationId = conversationId;
+      client.data.chatTypingRecipients = participants
+        .filter(participant => participant.id !== currentUser.id)
+        .map(participant => participant.document);
+    }
+
+    const recipients = Array.isArray(client.data.chatTypingRecipients)
+      ? (client.data.chatTypingRecipients as string[])
+      : [];
+    const state: ChatTypingState = {
+      conversationId,
+      document: normalizeDocument(currentUser.document),
+      typing: true,
+    };
+    await Promise.all(
+      recipients.map(document => this.emitToUnlockedUser(document, CHAT_EVENTS.typing, state))
+    );
+  }
+
+  private async stopClientTyping(client: Socket, currentUser: RegisteredChatUser): Promise<void> {
+    const conversationId = Number(client.data.chatTypingConversationId);
+    const recipients = Array.isArray(client.data.chatTypingRecipients)
+      ? (client.data.chatTypingRecipients as string[])
+      : [];
+    delete client.data.chatTypingConversationId;
+    delete client.data.chatTypingRecipients;
+    if (!Number.isSafeInteger(conversationId) || conversationId <= 0) return;
+
+    const state: ChatTypingState = {
+      conversationId,
+      document: normalizeDocument(currentUser.document),
+      typing: false,
+    };
+    await Promise.all(
+      recipients.map(document => this.emitToUnlockedUser(document, CHAT_EVENTS.typing, state))
+    );
   }
 
   private registerClient(document: string, client: Socket): void {

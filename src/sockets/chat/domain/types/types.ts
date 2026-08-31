@@ -80,6 +80,12 @@ export interface ChatOnlineUsersCount {
   count: number;
 }
 
+export interface ChatTypingState {
+  conversationId: number;
+  document: string;
+  typing: boolean;
+}
+
 export interface StartConversationPayload {
   document?: unknown;
 }
@@ -95,6 +101,10 @@ export interface OpenConversationPayload {
 
 export interface LoadPreviousChatMessagesPayload extends OpenConversationPayload {
   beforeMessageId?: number | undefined;
+}
+
+export interface ChatTypingPayload extends OpenConversationPayload {
+  typing?: unknown;
 }
 
 export interface SendChatMessagePayload extends OpenConversationPayload {
