@@ -1,6 +1,6 @@
 import type { Socket } from 'socket.io';
 import type { ChatBootstrap, RegisteredChatUser } from '@socket/chat/domain/types';
-import { SOCKET_EVENTS } from '@common/application/events';
+import { SOCKET_EVENTS } from '@socket/common/events';
 import type { SocketUser } from '@socket/common/types';
 import { SharedChatGateway } from './gtw-shared';
 import { Injectable } from '@nestjs/common';

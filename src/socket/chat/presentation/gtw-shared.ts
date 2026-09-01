@@ -13,7 +13,7 @@ import type {
   RegisteredChatUser,
   ChatMessageMutationError,
 } from '@socket/chat/domain/types';
-import { SOCKET_EVENTS } from '@common/application/events';
+import { SOCKET_EVENTS } from '@socket/common/events';
 import {
   ChatStoreService,
   ChatDirectoryService,
@@ -21,7 +21,7 @@ import {
 } from '@socket/chat/infrastructure/services';
 import { normalizeDocument } from '@socket/chat/domain/types';
 import { FileServerRegistry } from '@file-saver/registry';
-import { ADMINS, CAN_TALK_WITH_ALTOS_MANDOS } from '@common/application/constants';
+import { ADMINS, CAN_TALK_WITH_ALTOS_MANDOS } from '@socket/common';
 import { SocketClientRegistry } from '@socket/common/client-registry';
 
 const ONLINE_USERS_COUNT_ALLOWED_DOCUMENTS = new Set(ADMINS);

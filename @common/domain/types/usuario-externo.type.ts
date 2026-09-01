@@ -4,9 +4,9 @@ export type UsuExtCode = 1 | 2 | 3;
 
 export class UsuExtType extends CtmType<UsuExtCode> {}
 
-const GENUSUARIO = new UsuExtType(1, 'GENUSUARIO');
-const GENTERCERP = new UsuExtType(2, 'GENTERCERP');
-const GENPACIEN = new UsuExtType(3, 'GENPACIEN');
+const GENUSUARIO = new UsuExtType(1, 'USUARIO');
+const GENTERCERP = new UsuExtType(2, 'TERCERO');
+const GENPACIEN = new UsuExtType(3, 'PACIENTE');
 
 export function usuExtTypeFactory(code: UsuExtCode): UsuExtType {
   switch (code) {

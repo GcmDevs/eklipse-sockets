@@ -28,7 +28,7 @@ import type {
   SendChatMessagePayload,
   StartConversationPayload,
 } from '@socket/chat/domain/types';
-import { SOCKET_EVENTS } from '@common/application/events';
+import { SOCKET_EVENTS } from '@socket/common/events';
 import { SOCKET_GATEWAY_OPTIONS } from '@socket/common/constants';
 import { DisableSecurityImpl } from './gtw-disable-security';
 import { DeleteMessageImpl } from './gtw-delete-message';

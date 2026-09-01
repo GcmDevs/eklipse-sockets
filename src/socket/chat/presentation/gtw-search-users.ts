@@ -6,7 +6,7 @@ import type {
   RegisteredChatUser,
   SearchChatUsersPayload,
 } from '@socket/chat/domain/types';
-import { ALTOS_MANDOS } from '@common/application/constants';
+import { ALTOS_MANDOS } from '@socket/common';
 import { SharedChatGateway } from './gtw-shared';
 
 @Injectable()

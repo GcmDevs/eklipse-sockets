@@ -4,8 +4,10 @@ import { _PrivSecRoleOrm } from './role.orm';
 import { _PrivSecSubModuleOrm } from './sub-module.orm';
 import { _PrivSecUserOrm } from './user.orm';
 import { _PrivSecEkUserOrm } from './ek-user.orm';
+import { _PrivSecEkCenterOrm } from './ek-center.orm';
 
 export const _PRIV_ORM_AUTH_SEC_ENTITIES = [
+  _PrivSecEkCenterOrm,
   _PrivSecEkUserOrm,
   _PrivSecAuthOrm,
   _PrivSecModuleOrm,

@@ -7,7 +7,7 @@ import type {
   StartConversationPayload,
 } from '@socket/chat/domain/types';
 import { normalizeDocument } from '@socket/chat/domain/types';
-import { ALTOS_MANDOS } from '@common/application/constants';
+import { ALTOS_MANDOS } from '@socket/common';
 import { SharedChatGateway } from './gtw-shared';
 
 const ALTOS_MANDOS_DOCUMENTS = new Set(ALTOS_MANDOS.map(normalizeDocument));
