@@ -3,7 +3,7 @@ import { CRYPTO_SERVICES } from '@common/application/services';
 import { IsNull, Not } from 'typeorm';
 import { GCM_CONTEXTS } from '@common/domain/types';
 import { switchConn } from '@common/infrastructure/services';
-import { ChatSecurityOrm } from '../orm/security.orm';
+import { ChatSecurityOrm } from '@socket/chat/infrastructure/orm';
 
 interface FailedPinState {
   attempts: number;

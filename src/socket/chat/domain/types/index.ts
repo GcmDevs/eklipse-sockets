@@ -37,7 +37,13 @@ export interface ChatConversationSummary {
   lastMessage: ChatMessage | null;
   lastReadMessageId: number | null;
   unreadCount: number;
+  hidden: boolean;
   updatedAt: string;
+}
+
+export interface ChatConversationHidden {
+  conversationId: number;
+  lastMessageId: number | null;
 }
 
 export interface ChatMessagePage {
@@ -98,6 +104,8 @@ export interface OpenConversationPayload {
   conversationId?: number | undefined;
   markAsRead?: unknown;
 }
+
+export type HideChatConversationPayload = OpenConversationPayload;
 
 export interface LoadPreviousChatMessagesPayload extends OpenConversationPayload {
   beforeMessageId?: number | undefined;

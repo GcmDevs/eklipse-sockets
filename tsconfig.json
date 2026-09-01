@@ -22,7 +22,9 @@
       "@common/*": ["./@common/*"],
       "@authorities": ["./authorities"],
       "@types/*": ["./@types/*"],
-      "@orm/*": ["./@orm/*"]
+      "@orm/*": ["./@orm/*"],
+      "@file-saver/*": ["./src/file-saver/*"],
+      "@socket/*": ["./src/socket/*"]
     }
   }
 }

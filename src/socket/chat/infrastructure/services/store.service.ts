@@ -2,26 +2,30 @@ import { Injectable } from '@nestjs/common';
 import { LessThan } from 'typeorm';
 import { GCM_CONTEXTS } from '@common/domain/types';
 import { switchConn } from '@common/infrastructure/services';
-import { ChatConversationOrm } from '../orm/conversation.orm';
-import { ChatConversationReadOrm } from '../orm/conversation-read.orm';
-import { ChatMessageAttachmentOrm } from '../orm/message-attachment.orm';
-import { ChatMessageOrm } from '../orm/message.orm';
+import {
+  ChatMessageOrm,
+  ChatMessageAttachmentOrm,
+  ChatConversationReadOrm,
+  ChatConversationOrm,
+} from '@socket/chat/infrastructure/orm';
 import type {
   ChatConversationDetails,
+  ChatConversationHidden,
   ChatConversationSummary,
   ChatMessage,
   ChatMessagePage,
   ChatMessageReply,
   ChatUser,
   RegisteredChatUser,
-} from '../../domain/types/types';
-import { CHAT_MESSAGE_MUTATION_WINDOW_MS, normalizeDocument } from '../../domain/types/types';
-import { FILE_PATHS } from '../../../../file-saver/locations';
+} from '@socket/chat/domain/types';
+import { CHAT_MESSAGE_MUTATION_WINDOW_MS, normalizeDocument } from '@socket/chat/domain/types';
+import { FILE_PATHS } from '@file-saver/locations';
 import { CRYPTO_CHAT_SERVICES } from '@common/application/services';
 
 interface ChatUnreadState {
   lastReadMessageId: number | null;
   unreadCount: number;
+  hidden: boolean;
 }
 
 export class ChatReplyMessageNotFoundError extends Error {
@@ -97,6 +101,40 @@ export class ChatStoreService {
     return true;
   }
 
+  async hideConversation(
+    conversationId: number,
+    currentUser: RegisteredChatUser
+  ): Promise<ChatConversationHidden | undefined> {
+    return this.sharedConn.transaction('SERIALIZABLE', async manager => {
+      const conversation = await manager.getRepository(ChatConversationOrm).findOne({
+        where: { id: conversationId },
+      });
+      if (!conversation || !this.hasParticipant(conversation, currentUser.id)) return undefined;
+
+      const repository = manager.getRepository(ChatConversationReadOrm);
+      const existing = await repository.findOne({
+        where: { conversationId: conversation.id, userId: currentUser.id },
+      });
+      const lastMessageId = Number(conversation.lastMessageId ?? 0);
+
+      await repository.save(
+        repository.create({
+          ...existing,
+          conversationId: conversation.id,
+          userId: currentUser.id,
+          lastReadMessageId: lastMessageId || existing?.lastReadMessageId || null,
+          hiddenAt: new Date(),
+          updatedAt: new Date(),
+        })
+      );
+
+      return {
+        conversationId: conversation.id,
+        lastMessageId: conversation.lastMessageId ?? null,
+      };
+    });
+  }
+
   async loadPreviousMessages(
     conversationId: number,
     currentUser: RegisteredChatUser,
@@ -166,6 +204,9 @@ export class ChatStoreService {
       conversation.lastSenderUserId = currentUser.id;
       conversation.updatedAt = createdAt;
       await conversationRepository.save(conversation);
+      await manager
+        .getRepository(ChatConversationReadOrm)
+        .update({ conversationId }, { hiddenAt: null });
 
       return this.toChatMessage(
         message,
@@ -258,16 +299,19 @@ export class ChatStoreService {
     const conversationIds = conversations.map(conversation => conversation.id);
     const unreadStates = await this.unreadStatesFor(userId, conversationIds);
 
-    return conversations.map(conversation => {
-      const unreadState = unreadStates.get(conversation.id);
-      return this.summaryFor(
-        conversation,
-        userId,
-        isOnline,
-        unreadState?.unreadCount ?? 0,
-        unreadState?.lastReadMessageId ?? null
-      );
-    });
+    return conversations
+      .filter(conversation => !unreadStates.get(conversation.id)?.hidden)
+      .map(conversation => {
+        const unreadState = unreadStates.get(conversation.id);
+        return this.summaryFor(
+          conversation,
+          userId,
+          isOnline,
+          unreadState?.unreadCount ?? 0,
+          unreadState?.lastReadMessageId ?? null,
+          false
+        );
+      });
   }
 
   async unreadCountFor(userId: number): Promise<number> {
@@ -330,7 +374,8 @@ export class ChatStoreService {
         userId,
         isOnline,
         unreadState?.unreadCount ?? 0,
-        unreadState?.lastReadMessageId ?? null
+        unreadState?.lastReadMessageId ?? null,
+        unreadState?.hidden ?? false
       ),
       ...messagePage,
     };
@@ -371,7 +416,8 @@ export class ChatStoreService {
     userId: number,
     isOnline: (contactDocument: string) => boolean,
     unreadCount: number,
-    lastReadMessageId: number | null
+    lastReadMessageId: number | null,
+    hidden: boolean
   ): ChatConversationSummary {
     const contact = this.otherParticipant(conversation, userId);
     if (!contact) throw new Error('Conversation without a contact');
@@ -407,6 +453,7 @@ export class ChatStoreService {
       lastMessage,
       lastReadMessageId,
       unreadCount,
+      hidden,
       updatedAt: this.toIsoString(conversation.updatedAt),
     };
   }
@@ -463,13 +510,16 @@ export class ChatStoreService {
       )
       .select('conversation.OID', 'conversationId')
       .addSelect('reading.CHATMENSAJE', 'lastReadMessageId')
+      .addSelect('reading.FECOCU', 'hiddenAt')
       .addSelect('COUNT(unreadMessage.OID)', 'unreadCount')
       .where('conversation.OID IN (:...conversationIds)', { conversationIds })
       .groupBy('conversation.OID')
       .addGroupBy('reading.CHATMENSAJE')
+      .addGroupBy('reading.FECOCU')
       .getRawMany<{
         conversationId: number | string;
         lastReadMessageId: number | string | null;
+        hiddenAt: Date | string | null;
         unreadCount: number | string;
       }>();
 
@@ -479,6 +529,7 @@ export class ChatStoreService {
         {
           lastReadMessageId: row.lastReadMessageId == null ? null : Number(row.lastReadMessageId),
           unreadCount: Number(row.unreadCount),
+          hidden: row.hiddenAt != null,
         },
       ])
     );

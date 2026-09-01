@@ -13,20 +13,13 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import type { Namespace, Socket } from 'socket.io';
-import { processEnv } from '@env';
-import { ChatDirectoryService } from './infrastructure/services/directory.service';
-import { CHAT_EVENTS } from './application/constants/events';
-import {
-  ChatReplyMessageNotFoundError,
-  ChatStoreService,
-  type ChatMessageMutationError,
-} from './infrastructure/services/store.service';
-import { ChatSecurityService } from './infrastructure/services/security.service';
+import type { ChatMessageMutationError } from '@socket/chat/infrastructure/services';
 import type {
   ChatActionAck,
   ChatBootstrap,
   ChatContact,
   ChatConversationDetails,
+  ChatConversationHidden,
   ChatConversationSummary,
   DeleteChatMessagePayload,
   EditChatMessagePayload,
@@ -41,14 +34,23 @@ import type {
   ChatTypingPayload,
   ChatTypingState,
   ChatUser,
+  HideChatConversationPayload,
   LoadPreviousChatMessagesPayload,
   OpenConversationPayload,
   RegisteredChatUser,
   SearchChatUsersPayload,
   SendChatMessagePayload,
   StartConversationPayload,
-} from './domain/types/types';
-import { normalizeDocument } from './domain/types/types';
+} from '@socket/chat/domain/types';
+import { processEnv } from '@env';
+import { SOCKET_EVENTS } from '@common/application/events';
+import {
+  ChatReplyMessageNotFoundError,
+  ChatStoreService,
+  ChatDirectoryService,
+  ChatSecurityService,
+} from '@socket/chat/infrastructure/services';
+import { normalizeDocument } from '@socket/chat/domain/types';
 import { promises as fs } from 'fs';
 import {
   FILE_PATHS,
@@ -56,12 +58,16 @@ import {
   isManagedStoredFilePath,
   normalizeStoredFilePath,
   resolveStoredPublicFile,
-} from '../../file-saver/locations';
-import { VALID_HOSTS } from '../../app.environments';
-import { FileServerRegistry } from '../../file-saver/registry';
-import { ADMINS } from './application/constants';
+} from '@file-saver/locations';
+import { VALID_HOSTS } from '../app.environments';
+import { FileServerRegistry } from '@file-saver/registry';
+import { ADMINS, ALTOS_MANDOS, CAN_TALK_WITH_ALTOS_MANDOS } from '@common/application/constants';
 
 const ONLINE_USERS_COUNT_ALLOWED_DOCUMENTS = new Set(ADMINS);
+const ALTOS_MANDOS_DOCUMENTS = new Set(ALTOS_MANDOS.map(normalizeDocument));
+const CAN_TALK_WITH_ALTOS_MANDOS_DOCUMENTS = new Set(
+  CAN_TALK_WITH_ALTOS_MANDOS.map(normalizeDocument)
+);
 const CHAT_SECURITY_LOCK_DELAY_MS = 10 * 60 * 1000;
 
 @WebSocketGateway({
@@ -132,7 +138,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       client.emit('exception', {
         message: 'No fue posible validar la seguridad del chat.',
       });
-      client.emit(CHAT_EVENTS.bootstrap, {
+      client.emit(SOCKET_EVENTS.chat.bootstrap, {
         conversations: [],
         notifications: { unreadCount: 0 },
         security: this.securityStateFor(client),
@@ -141,7 +147,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     void this.emitPresence(user);
   }
 
-  @SubscribeMessage(CHAT_EVENTS.enableSecurity)
+  @SubscribeMessage(SOCKET_EVENTS.chat.enableSecurity)
   async enableSecurity(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: ChatPinPayload
@@ -170,7 +176,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     }
   }
 
-  @SubscribeMessage(CHAT_EVENTS.unlockSecurity)
+  @SubscribeMessage(SOCKET_EVENTS.chat.unlockSecurity)
   async unlockSecurity(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: ChatPinPayload
@@ -210,7 +216,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     }
   }
 
-  @SubscribeMessage(CHAT_EVENTS.disableSecurity)
+  @SubscribeMessage(SOCKET_EVENTS.chat.disableSecurity)
   async disableSecurity(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: ChatPinPayload
@@ -242,7 +248,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     }
   }
 
-  @SubscribeMessage(CHAT_EVENTS.lockSecurity)
+  @SubscribeMessage(SOCKET_EVENTS.chat.lockSecurity)
   lockSecurity(@ConnectedSocket() client: Socket): ChatActionAck<ChatSecurityState> {
     const currentUser = client.data.chatUser as RegisteredChatUser | undefined;
     if (!currentUser) return this.unauthorized();
@@ -251,7 +257,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     return { ok: true, data: this.securityStateFor(client) };
   }
 
-  @SubscribeMessage(CHAT_EVENTS.securityActivity)
+  @SubscribeMessage(SOCKET_EVENTS.chat.securityActivity)
   securityActivity(@ConnectedSocket() client: Socket): ChatActionAck<ChatSecurityState> {
     const currentUser = client.data.chatUser as RegisteredChatUser | undefined;
     if (!currentUser) return this.unauthorized();
@@ -261,7 +267,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     return { ok: true, data: this.securityStateFor(client) };
   }
 
-  @SubscribeMessage(CHAT_EVENTS.searchUsers)
+  @SubscribeMessage(SOCKET_EVENTS.chat.searchUsers)
   async searchUsers(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: SearchChatUsersPayload
@@ -278,7 +284,12 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     }
 
     try {
-      const contacts = (await this.directory.search(query, currentUser.document)).map(user => ({
+      const excludedDocuments = this.canTalkWithAltosMandos(currentUser.document)
+        ? []
+        : ALTOS_MANDOS;
+      const contacts = (
+        await this.directory.search(query, currentUser.document, excludedDocuments)
+      ).map(user => ({
         document: user.document,
         name: user.name,
         online: this.isOnline(user.document),
@@ -305,7 +316,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     void this.emitPresence(user);
   }
 
-  @SubscribeMessage(CHAT_EVENTS.startConversation)
+  @SubscribeMessage(SOCKET_EVENTS.chat.startConversation)
   async startConversation(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: StartConversationPayload
@@ -333,6 +344,12 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       return { ok: false, error: 'Tu usuario ya no está registrado para utilizar el chat.' };
     }
     if (!contact) return { ok: false, error: 'No encontramos un usuario con ese documento.' };
+    if (
+      ALTOS_MANDOS_DOCUMENTS.has(normalizeDocument(contact.document)) &&
+      !this.canTalkWithAltosMandos(registeredCurrentUser.document)
+    ) {
+      return { ok: false, error: 'No encontramos un usuario con ese documento.' };
+    }
     if (contact.id === registeredCurrentUser.id) {
       return { ok: false, error: 'No puedes iniciar una conversación contigo mismo.' };
     }
@@ -349,7 +366,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     }
   }
 
-  @SubscribeMessage(CHAT_EVENTS.openConversation)
+  @SubscribeMessage(SOCKET_EVENTS.chat.openConversation)
   async openConversation(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: OpenConversationPayload
@@ -386,7 +403,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     }
   }
 
-  @SubscribeMessage(CHAT_EVENTS.markConversationRead)
+  @SubscribeMessage(SOCKET_EVENTS.chat.markConversationRead)
   async markConversationRead(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: OpenConversationPayload
@@ -421,7 +438,38 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     }
   }
 
-  @SubscribeMessage(CHAT_EVENTS.loadPreviousMessages)
+  @SubscribeMessage(SOCKET_EVENTS.chat.hideConversation)
+  async hideConversation(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: HideChatConversationPayload
+  ): Promise<ChatActionAck<ChatConversationHidden>> {
+    const currentUser = client.data.chatUser as RegisteredChatUser | undefined;
+    if (!currentUser) return this.unauthorized();
+    if (this.isChatLocked(client)) return this.chatLocked();
+    await this.stopClientTyping(client, currentUser);
+    this.touchSecurityActivity(client);
+
+    const conversationId = Number(payload?.conversationId);
+    if (!Number.isSafeInteger(conversationId) || conversationId <= 0) {
+      return { ok: false, error: 'La conversación no es válida.' };
+    }
+
+    try {
+      const data = await this.store.hideConversation(conversationId, currentUser);
+      if (!data) return { ok: false, error: 'No tienes acceso a esta conversación.' };
+
+      await Promise.all([
+        this.emitToUnlockedUser(currentUser.document, SOCKET_EVENTS.chat.conversationHidden, data),
+        this.emitNotificationState(currentUser),
+      ]);
+      return { ok: true, data };
+    } catch (error) {
+      this.logPersistenceError('ocultar una conversación', error);
+      return { ok: false, error: 'No fue posible ocultar la conversación.' };
+    }
+  }
+
+  @SubscribeMessage(SOCKET_EVENTS.chat.loadPreviousMessages)
   async loadPreviousMessages(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: LoadPreviousChatMessagesPayload
@@ -457,7 +505,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     }
   }
 
-  @SubscribeMessage(CHAT_EVENTS.typing)
+  @SubscribeMessage(SOCKET_EVENTS.chat.typing)
   async updateTyping(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: ChatTypingPayload
@@ -485,7 +533,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     }
   }
 
-  @SubscribeMessage(CHAT_EVENTS.sendMessage)
+  @SubscribeMessage(SOCKET_EVENTS.chat.sendMessage)
   async sendMessage(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: SendChatMessagePayload
@@ -584,7 +632,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       await this.emitConversationUpdate(payload.conversationId);
       await Promise.all(
         registeredParticipants.map(participant =>
-          this.emitToUnlockedUser(participant.document, CHAT_EVENTS.message, message)
+          this.emitToUnlockedUser(participant.document, SOCKET_EVENTS.chat.message, message)
         )
       );
 
@@ -601,7 +649,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     }
   }
 
-  @SubscribeMessage(CHAT_EVENTS.editMessage)
+  @SubscribeMessage(SOCKET_EVENTS.chat.editMessage)
   async editMessage(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: EditChatMessagePayload
@@ -636,7 +684,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     }
   }
 
-  @SubscribeMessage(CHAT_EVENTS.deleteMessage)
+  @SubscribeMessage(SOCKET_EVENTS.chat.deleteMessage)
   async deleteMessage(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: DeleteChatMessagePayload
@@ -707,7 +755,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   private async emitBootstrap(client: Socket, user: RegisteredChatUser): Promise<void> {
-    client.emit(CHAT_EVENTS.bootstrap, await this.bootstrapFor(client, user));
+    client.emit(SOCKET_EVENTS.chat.bootstrap, await this.bootstrapFor(client, user));
   }
 
   private securityStateFor(client: Socket): ChatSecurityState {
@@ -740,7 +788,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     if (currentUser) void this.stopClientTyping(client, currentUser);
     this.clearSecurityTimeout(client.id);
     client.data.chatSecurityUnlocked = false;
-    client.emit(CHAT_EVENTS.securityState, this.securityStateFor(client));
+    client.emit(SOCKET_EVENTS.chat.securityState, this.securityStateFor(client));
   }
 
   private clearSecurityTimeout(clientId: string): void {
@@ -764,7 +812,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       client.data.chatSecurityUnlocked = !enabled;
       if (enabled) void this.stopClientTyping(client, user);
       this.clearSecurityTimeout(client.id);
-      client.emit(CHAT_EVENTS.securityState, this.securityStateFor(client));
+      client.emit(SOCKET_EVENTS.chat.securityState, this.securityStateFor(client));
       if (!enabled) void this.emitBootstrap(client, user);
     }
   }
@@ -795,7 +843,9 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       typing: true,
     };
     await Promise.all(
-      recipients.map(document => this.emitToUnlockedUser(document, CHAT_EVENTS.typing, state))
+      recipients.map(document =>
+        this.emitToUnlockedUser(document, SOCKET_EVENTS.chat.typing, state)
+      )
     );
   }
 
@@ -814,7 +864,9 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       typing: false,
     };
     await Promise.all(
-      recipients.map(document => this.emitToUnlockedUser(document, CHAT_EVENTS.typing, state))
+      recipients.map(document =>
+        this.emitToUnlockedUser(document, SOCKET_EVENTS.chat.typing, state)
+      )
     );
   }
 
@@ -854,7 +906,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     const clients = this.connectedClients.get(normalizeDocument(user.document));
     if (!clients) return;
 
-    for (const client of clients) client.emit(CHAT_EVENTS.notificationState, payload);
+    for (const client of clients) client.emit(SOCKET_EVENTS.chat.notificationState, payload);
   }
 
   private async emitConversationUpdate(conversationId: number): Promise<void> {
@@ -883,7 +935,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       await Promise.all([
         this.emitConversationUpdate(message.conversationId),
         ...participants.map(participant =>
-          this.emitToUnlockedUser(participant.document, CHAT_EVENTS.messageUpdated, message)
+          this.emitToUnlockedUser(participant.document, SOCKET_EVENTS.chat.messageUpdated, message)
         ),
       ]);
     } catch {
@@ -892,7 +944,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   private emitSummaryToUser(document: string, summary: ChatConversationSummary): Promise<void> {
-    return this.emitToUnlockedUser(document, CHAT_EVENTS.conversationUpdated, summary);
+    return this.emitToUnlockedUser(document, SOCKET_EVENTS.chat.conversationUpdated, summary);
   }
 
   private async emitPresence(user: RegisteredChatUser): Promise<void> {
@@ -913,7 +965,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
     for (const recipient of new Set(recipients)) {
       if (recipient !== presence.document) {
-        await this.emitToUnlockedUser(recipient, CHAT_EVENTS.presence, presence);
+        await this.emitToUnlockedUser(recipient, SOCKET_EVENTS.chat.presence, presence);
       }
     }
   }
@@ -922,12 +974,16 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     return (this.connectedUsers.get(normalizeDocument(document)) ?? 0) > 0;
   }
 
+  private canTalkWithAltosMandos(document: string): boolean {
+    return CAN_TALK_WITH_ALTOS_MANDOS_DOCUMENTS.has(normalizeDocument(document));
+  }
+
   private emitOnlineUsersCount(): void {
     const payload: ChatOnlineUsersCount = { count: this.connectedUsers.size };
 
     for (const document of ONLINE_USERS_COUNT_ALLOWED_DOCUMENTS) {
       if (this.isOnline(document)) {
-        this.server.to(this.userRoom(document)).emit(CHAT_EVENTS.onlineUsersCount, payload);
+        this.server.to(this.userRoom(document)).emit(SOCKET_EVENTS.chat.onlineUsersCount, payload);
       }
     }
   }

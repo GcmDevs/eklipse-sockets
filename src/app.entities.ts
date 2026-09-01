@@ -1,4 +1,4 @@
-import { CHAT_ENTITIES } from './sockets/chat/infrastructure/orm';
+import { CHAT_ENTITIES } from './socket/chat/infrastructure/orm';
 
 export const ENTITIES = [
   // --- AVOID NOWRAP --- //

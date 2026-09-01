@@ -32,6 +32,9 @@ export class ChatConversationReadOrm {
   @JoinColumn({ name: 'CHATMENSAJE' })
   lastReadMessage?: ChatMessageOrm | null;
 
+  @Column({ name: 'FECOCU', nullable: true })
+  hiddenAt?: Date | null;
+
   @Column({ name: 'FECACT' })
   updatedAt: Date;
 }

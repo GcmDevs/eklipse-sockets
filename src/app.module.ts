@@ -10,13 +10,13 @@ import {
 import { promises as fs } from 'fs';
 import { resolve } from 'path';
 import { FileSaverModule } from './file-saver/module';
-import { ChatModule } from './sockets/chat/module';
+import { SocketModule } from '@socket/module';
 
 @Module({
   imports: [
     // --- AVOID NOWRAP --- //
     FileSaverModule,
-    ChatModule,
+    SocketModule,
   ],
 })
 export class AppModule implements OnModuleInit {
