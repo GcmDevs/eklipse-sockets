@@ -16,4 +16,4 @@ export const ENVIRONMENTS = {
   chatEncryptionKey: processEnv.CHAT_ENCRYPTION_KEY,
 };
 
-export const VALID_HOSTS = GLOBAL_VALID_HOSTS;
+export const VALID_HOSTS = [...GLOBAL_VALID_HOSTS, 'http://localhost:5173'];

@@ -11,7 +11,6 @@ export const fetchAuthsByUser = async (p: { id?: number; ctx?: GcmContextType; t
   try {
     if (tk) {
       let tkDcd: ITokenDecoded = JWTServices.decodeToken(tk);
-      if (!tkDcd.isDim) return { authorities: [], onlyCodes: [] };
       id = tkDcd.user.id;
       ctx = tkDcd.context;
     }

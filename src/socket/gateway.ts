@@ -7,6 +7,8 @@ import {
   WebSocketGateway,
 } from '@nestjs/websockets';
 import type { Namespace, Socket } from 'socket.io';
+import { RSAServices } from '@common/application/services';
+import { GcmContextCode, gcmContextFactory } from '@common/domain/types';
 import { processEnv } from '@env';
 import { SocketClientRegistry } from './common/client-registry';
 import { SOCKET_GATEWAY_OPTIONS } from './common/constants';
@@ -57,15 +59,31 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
     const document = normalizeSocketDocument(decoded?.dcm);
     const name = typeof decoded?.fnm === 'string' ? decoded.fnm.trim() : '';
-    if (!decoded?.jti || !decoded?.sub || !document || !name) {
+    const clientApp =
+      typeof client.handshake.auth?.clientApp === 'string'
+        ? client.handshake.auth.clientApp.trim()
+        : '';
+    const role =
+      decoded?.rol === 'USUARIO' || decoded?.rol === 'PACIENTE' ? decoded.rol : undefined;
+    if (!decoded?.jti || !decoded?.sub || !document || !name || !role) {
       throw new Error('Invalid token payload');
+    }
+
+    const userId = Number(RSAServices.decryptId(decoded.jti));
+    const centerId = gcmContextFactory(decoded.sub as GcmContextCode).getEkKey();
+    if (!Number.isSafeInteger(userId) || userId <= 0) {
+      throw new Error('Invalid user identity');
     }
 
     return {
       id: decoded.jti,
+      userId,
+      centerId,
       context: decoded.sub,
       document,
       name,
+      role,
+      clientApp,
     };
   }
 }

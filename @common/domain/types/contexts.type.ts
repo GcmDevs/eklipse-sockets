@@ -40,11 +40,11 @@ export class GcmContextType extends CtmType<GcmContextCode> {
   }
 }
 
-const SANJUAN = new GcmContextType(5, GcmContexts.SANJUAN, 'San Juan Bautista', 'SJ', 4);
 const EKLIPSE = new GcmContextType(99, GcmContexts.EKLIPSE, 'Eklipse GCM (Common DB)', 'EK', 99);
+const ALTACENTRO = new GcmContextType(1, GcmContexts.ALTACENTRO, 'Centro/Alta complejidad', 'CM/AC', 2);
 const AGUACHICA = new GcmContextType(3, GcmContexts.AGUACHICA, 'Alta complejidad (Aguachica)', 'AGU', 1);
 const AMMEDICAL = new GcmContextType(4, GcmContexts.AMMEDICAL, 'AMMedical', 'AM', 3);
-const ALTACENTRO = new GcmContextType(1, GcmContexts.ALTACENTRO, 'Centro/Alta complejidad', 'CM/AC', 2);
+const SANJUAN = new GcmContextType(5, GcmContexts.SANJUAN, 'San Juan Bautista', 'SJ', 4);
 const VALLEDUPAR = new GcmContextType(6, GcmContexts.VALLEDUPAR, 'Clinica Valledupar', 'VDP', 5);
 
 export function gcmContextFactory(code: GcmContextCode): GcmContextType {

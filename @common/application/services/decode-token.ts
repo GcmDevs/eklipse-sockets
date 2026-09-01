@@ -12,11 +12,11 @@ import { RSAServices } from './rsa';
 
 export interface IAuthToken {
   jti: string;
+  pid: string;
   sub: GcmContextCode;
   dcm: string;
   fnm: string;
-  dim: boolean;
-  tue: UsuExtCode;
+  rol: UsuExtCode;
   rst: boolean;
   iat?: number;
   exp?: number;
@@ -27,10 +27,10 @@ export interface ITokenDecoded {
     id: number;
     document: string;
     fullName: string;
+    patientId: number;
   };
-  isDim: boolean;
-  tipoUsuExt: UsuExtType;
   passWasReset: boolean;
+  role: UsuExtType;
   context: GcmContextType;
   createdAt: Date;
   expiredAt: Date;
@@ -46,9 +46,13 @@ const decodeToken = (token: string): ITokenDecoded => {
     const tkDcd: IAuthToken = jwtDecode(token);
 
     const tkFt: ITokenDecoded = {
-      user: { id: RSAServices.decryptId(tkDcd.jti), document: tkDcd.dcm, fullName: tkDcd.fnm },
-      isDim: tkDcd.dim === undefined ? true : tkDcd.dim,
-      tipoUsuExt: tkDcd.tue === undefined ? USU_EXTS.GENUSUARIO : usuExtTypeFactory(tkDcd.tue),
+      user: {
+        id: RSAServices.decryptId(tkDcd.jti),
+        document: tkDcd.dcm,
+        fullName: tkDcd.fnm,
+        patientId: RSAServices.decryptId(tkDcd.pid),
+      },
+      role: tkDcd.rol ? usuExtTypeFactory(tkDcd.rol) : USU_EXTS.GENUSUARIO,
       passWasReset: tkDcd.rst,
       context: gcmContextFactory(tkDcd.sub),
       createdAt: _tokenDateToDate(tkDcd.iat),

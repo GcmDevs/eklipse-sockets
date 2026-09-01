@@ -1,7 +1,7 @@
 import { createHash } from 'crypto';
 import { Injectable } from '@nestjs/common';
 import type { Socket } from 'socket.io';
-import { normalizeSocketDocument } from './types';
+import { normalizeSocketDocument, type SocketUser } from './types';
 
 @Injectable()
 export class SocketClientRegistry {
@@ -47,6 +47,44 @@ export class SocketClientRegistry {
 
   onlineUsersCount(): number {
     return this.clientsByDocument.size;
+  }
+
+  emitToAuthenticatedClientApp(clientApp: string, event: string, payload: unknown): number {
+    const notifiedDocuments = new Set<string>();
+
+    for (const clients of this.clientsByDocument.values()) {
+      for (const client of clients) {
+        const user = client.data.socketUser as SocketUser | undefined;
+        if (user?.clientApp !== clientApp) continue;
+        client.emit(event, payload);
+        notifiedDocuments.add(user.document);
+      }
+    }
+
+    return notifiedDocuments.size;
+  }
+
+  emitToMatchingAuthenticatedUsers(
+    clientApp: string,
+    event: string,
+    payloadForUser: (user: SocketUser) => unknown | undefined
+  ): number {
+    const notifiedUsers = new Set<string>();
+
+    for (const clients of this.clientsByDocument.values()) {
+      for (const client of clients) {
+        const user = client.data.socketUser as SocketUser | undefined;
+        if (!user || user.clientApp !== clientApp) continue;
+
+        const payload = payloadForUser(user);
+        if (payload === undefined) continue;
+
+        client.emit(event, payload);
+        notifiedUsers.add(`${user.role}:${user.centerId}:${user.userId}`);
+      }
+    }
+
+    return notifiedUsers.size;
   }
 
   emitToUser(document: string, event: string, payload: unknown): void {
