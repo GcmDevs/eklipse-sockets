@@ -1,3 +1,3 @@
-export * from './directory.service';
-export * from './security.service';
-export * from './store.service';
+export * from './directory';
+export * from './security';
+export * from './store';

@@ -147,3 +147,20 @@ export const normalizeDocument = (value: unknown): string =>
   typeof value === 'string' ? value.trim().toUpperCase() : '';
 
 export const CHAT_MESSAGE_MUTATION_WINDOW_MS = 10 * 60 * 1000;
+
+export type ChatMessageMutationError = 'not-found' | 'forbidden' | 'expired' | 'deleted' | 'empty';
+
+export type ChatMessageMutationResult =
+  { ok: true; message: ChatMessage } | { ok: false; error: ChatMessageMutationError };
+
+export class ChatReplyMessageNotFoundError extends Error {
+  constructor() {
+    super('Reply message not found in conversation');
+    this.name = 'ChatReplyMessageNotFoundError';
+  }
+}
+
+export interface ChatPinVerification {
+  valid: boolean;
+  retryAfterSeconds?: number;
+}
