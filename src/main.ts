@@ -25,6 +25,8 @@ async function bootstrap() {
     })
   );
 
+  app.setGlobalPrefix('api');
+
   app.useStaticAssets(FILE_PUBLIC_ROOT, {
     prefix: '/public',
     index: false,
