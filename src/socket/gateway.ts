@@ -44,46 +44,51 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   private authenticate(client: Socket): SocketUser {
-    const tokenFromAuth = client.handshake.auth?.token;
-    const authorization = client.handshake.headers.authorization;
-    const tokenFromHeader = authorization?.startsWith('Bearer ')
-      ? authorization.slice('Bearer '.length)
-      : undefined;
-    const token = typeof tokenFromAuth === 'string' ? tokenFromAuth : tokenFromHeader;
+    try {
+      const tokenFromAuth = client.handshake.auth?.token;
+      const authorization = client.handshake.headers.authorization;
+      const tokenFromHeader = authorization?.startsWith('Bearer ')
+        ? authorization.slice('Bearer '.length)
+        : undefined;
+      const token = typeof tokenFromAuth === 'string' ? tokenFromAuth : tokenFromHeader;
 
-    if (!token) throw new Error('Token not found');
+      if (!token) throw new Error('Token not found');
 
-    const decoded = (
-      processEnv.PRODUCTION ? jwt.verify(token, processEnv.JWT_SECRET_KEY) : jwt.decode(token)
-    ) as JwtPayload | null;
+      const decoded = (
+        processEnv.PRODUCTION ? jwt.verify(token, processEnv.JWT_SECRET_KEY) : jwt.decode(token)
+      ) as JwtPayload | null;
 
-    const document = normalizeSocketDocument(decoded?.dcm);
-    const name = typeof decoded?.fnm === 'string' ? decoded.fnm.trim() : '';
-    const clientApp =
-      typeof client.handshake.auth?.clientApp === 'string'
-        ? client.handshake.auth.clientApp.trim()
-        : '';
-    const role =
-      decoded?.rol === 'USUARIO' || decoded?.rol === 'PACIENTE' ? decoded.rol : undefined;
-    if (!decoded?.jti || !decoded?.sub || !document || !name || !role) {
-      throw new Error('Invalid token payload');
+      const document = normalizeSocketDocument(decoded?.dcm);
+      const name = typeof decoded?.fnm === 'string' ? decoded.fnm.trim() : '';
+      const clientApp =
+        typeof client.handshake.auth?.clientApp === 'string'
+          ? client.handshake.auth.clientApp.trim()
+          : '';
+
+      //
+      const role = ['USUARIO', 'PACIENTE'].indexOf(decoded?.rol) >= 1 ? decoded.rol : 'USUARIO';
+      if (!decoded?.jti || !decoded?.sub || !document || !name || !role) {
+        throw new Error('Invalid token payload');
+      }
+
+      const userId = Number(RSAServices.decryptId(decoded.jti));
+      const centerId = gcmContextFactory(decoded.sub as GcmContextCode).getEkKey();
+      if (!Number.isSafeInteger(userId) || userId <= 0) {
+        throw new Error('Invalid user identity');
+      }
+
+      return {
+        id: decoded.jti,
+        userId,
+        centerId,
+        context: decoded.sub,
+        document,
+        name,
+        role,
+        clientApp,
+      };
+    } catch (error) {
+      console.log(error);
     }
-
-    const userId = Number(RSAServices.decryptId(decoded.jti));
-    const centerId = gcmContextFactory(decoded.sub as GcmContextCode).getEkKey();
-    if (!Number.isSafeInteger(userId) || userId <= 0) {
-      throw new Error('Invalid user identity');
-    }
-
-    return {
-      id: decoded.jti,
-      userId,
-      centerId,
-      context: decoded.sub,
-      document,
-      name,
-      role,
-      clientApp,
-    };
   }
 }

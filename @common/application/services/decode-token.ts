@@ -50,7 +50,7 @@ const decodeToken = (token: string): ITokenDecoded => {
         id: RSAServices.decryptId(tkDcd.jti),
         document: tkDcd.dcm,
         fullName: tkDcd.fnm,
-        patientId: RSAServices.decryptId(tkDcd.pid),
+        patientId: tkDcd.pid ? RSAServices.decryptId(tkDcd.pid) : null!,
       },
       role: tkDcd.rol ? usuExtTypeFactory(tkDcd.rol) : USU_EXTS.GENUSUARIO,
       passWasReset: tkDcd.rst,
