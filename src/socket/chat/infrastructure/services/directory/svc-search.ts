@@ -14,24 +14,28 @@ export class ChatDirectorySearchImpl extends ChatDirectorySharedSource {
     const term = query.trim().slice(0, 80);
     if (!term) return [];
 
-    const escapedTerm = term.replace(/\[/g, '[[]').replace(/%/g, '[%]').replace(/_/g, '[_]');
+    // PostgreSQL does not support SQL Server's bracket escaping ([%], [_]).
+    // Use an explicit escape character so user input cannot become a LIKE pattern.
+    const escapedTerm = term.replace(/[!%_]/g, character => `!${character}`);
     const queryBuilder = this.sharedConn
       .getRepository(ChatUserOrm)
       .createQueryBuilder('chatUser')
-      .where('(chatUser.USUDOCUME LIKE :term OR chatUser.USUDESCRI LIKE :term)', {
-        term: `%${escapedTerm}%`,
-      });
+      .where(
+        `(chatUser.document ILIKE :term ESCAPE '!'
+          OR chatUser.fullName ILIKE :term ESCAPE '!')`,
+        { term: `%${escapedTerm}%` }
+      );
     const excluded = [
       ...new Set(excludedDocuments.map(normalizeDocument).filter(document => document)),
     ];
     if (excluded.length) {
-      queryBuilder.andWhere('chatUser.USUDOCUME NOT IN (:...excludedDocuments)', {
+      queryBuilder.andWhere('chatUser.document NOT IN (:...excludedDocuments)', {
         excludedDocuments: excluded,
       });
     }
 
     const records = await queryBuilder
-      .orderBy('chatUser.USUDESCRI', 'ASC')
+      .orderBy('chatUser.fullName', 'ASC')
       .take(this.MAX_SEARCH_RESULTS)
       .getMany();
     const usersByDocument = new Map<string, RegisteredChatUser>();

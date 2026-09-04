@@ -1,9 +1,10 @@
+import { processEnv } from '@env';
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 
 const algorithm = 'aes-256-gcm';
 
 const getKey = (): Buffer => {
-  const key = Buffer.from(process.env.CHAT_ENCRYPTION_KEY!, 'base64');
+  const key = Buffer.from(processEnv.CHAT_ENCRYPTION_KEY!, 'base64');
   if (key.length !== 32) throw new Error('CHAT_ENCRYPTION_KEY debe tener 32 bytes');
   return key;
 };

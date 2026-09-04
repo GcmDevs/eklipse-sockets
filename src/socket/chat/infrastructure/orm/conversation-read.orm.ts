@@ -3,7 +3,7 @@ import { ChatConversationOrm } from './conversation.orm';
 import { ChatMessageOrm } from './message.orm';
 import { ChatUserOrm } from './user.orm';
 
-@Entity('CHATCONLECTURA', { schema: 'dbo' })
+@Entity('CHATCONLECTURA')
 @Index('UQ_CHATCONLECTURA_USUARIO_CONVERSACION', ['userId', 'conversationId'], {
   unique: true,
 })

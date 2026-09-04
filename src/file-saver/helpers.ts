@@ -31,7 +31,7 @@ export const nonEditFileName = (_req: any, file: any, callback: any): void => {
   const extension = extname(String(file.originalname ?? '')).toLowerCase();
   callback(
     null,
-    `${randomUUID().replaceAll('-', '').slice(0, 22)}${Math.floor(Math.random() * 889) + 111}${extension}`
+    `${randomUUID().replaceAll('-', '').slice(0, 10)}${Math.floor(Math.random() * (999999 - 111111 + 1)) + 111111}${extension}`
   );
 };
 

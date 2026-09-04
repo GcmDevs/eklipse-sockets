@@ -1,6 +1,5 @@
 import { CRYPTO_CHAT_SERVICES } from '@common/application/services';
-import { GCM_CONTEXTS } from '@common/domain/types';
-import { switchConn } from '@common/infrastructure/services';
+import { switchSocketsConn } from '@common/infrastructure/services';
 import { FILE_PATHS } from '@file-saver/locations';
 import type {
   RegisteredChatUser,
@@ -29,7 +28,7 @@ export interface ChatUnreadState {
 
 export class ChatStoreSharedSource {
   protected readonly MESSAGES_PAGE_SIZE = 30;
-  protected readonly sharedConn = switchConn(GCM_CONTEXTS.EKLIPSE);
+  protected readonly sharedConn = switchSocketsConn();
 
   protected async detailsFor(
     conversation: ChatConversationOrm,
@@ -170,26 +169,28 @@ export class ChatStoreSharedSource {
       .leftJoin(
         ChatConversationReadOrm,
         'reading',
-        'reading.CHATCONVERSACION = conversation.OID AND reading.CHATUSUREG = :userId',
+        'reading.conversationId = conversation.id AND reading.userId = :userId',
         { userId }
       )
       .leftJoin(
         ChatMessageOrm,
         'unreadMessage',
-        `unreadMessage.CHATCONVERSACION = conversation.OID
-          AND unreadMessage.CHATUSUREG2 = :userId
-          AND unreadMessage.FECELI IS NULL
-          AND unreadMessage.OID > COALESCE(reading.CHATMENSAJE, 0)`,
+        [
+          'unreadMessage.conversationId = conversation.id',
+          'unreadMessage.recipientUserId = :userId',
+          'unreadMessage.deletedAt IS NULL',
+          'unreadMessage.id > COALESCE(reading.lastReadMessageId, 0)',
+        ].join(' AND '),
         { userId }
       )
-      .select('conversation.OID', 'conversationId')
-      .addSelect('reading.CHATMENSAJE', 'lastReadMessageId')
-      .addSelect('reading.FECOCU', 'hiddenAt')
-      .addSelect('COUNT(unreadMessage.OID)', 'unreadCount')
-      .where('conversation.OID IN (:...conversationIds)', { conversationIds })
-      .groupBy('conversation.OID')
-      .addGroupBy('reading.CHATMENSAJE')
-      .addGroupBy('reading.FECOCU')
+      .select('conversation.id', 'conversationId')
+      .addSelect('reading.lastReadMessageId', 'lastReadMessageId')
+      .addSelect('reading.hiddenAt', 'hiddenAt')
+      .addSelect('COUNT(unreadMessage.id)', 'unreadCount')
+      .where('conversation.id IN (:...conversationIds)', { conversationIds })
+      .groupBy('conversation.id')
+      .addGroupBy('reading.lastReadMessageId')
+      .addGroupBy('reading.hiddenAt')
       .getRawMany<{
         conversationId: number | string;
         lastReadMessageId: number | string | null;

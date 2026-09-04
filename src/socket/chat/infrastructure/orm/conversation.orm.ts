@@ -2,7 +2,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } 
 import { ChatUserOrm } from './user.orm';
 import { ChatMessageOrm } from './message.orm';
 
-@Entity('CHATCONVERSACION', { schema: 'dbo' })
+@Entity('CHATCONVERSACION')
 @Index('UQ_CHATCONVERSACION_PARTICIPANTES', ['firstUserId', 'secondUserId'], { unique: true })
 @Index('IX_CHATCONVERSACION_USUARIO1_ULTMOV', ['firstUserId', 'updatedAt'])
 @Index('IX_CHATCONVERSACION_USUARIO2_ULTMOV', ['secondUserId', 'updatedAt'])

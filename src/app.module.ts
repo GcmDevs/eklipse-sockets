@@ -1,6 +1,6 @@
 import { Module, OnModuleInit } from '@nestjs/common';
-import { initializeSources } from '@common/infrastructure/services';
-import { ENTITIES } from './app.entities';
+import { initializeEkSources, initializeSources } from '@common/infrastructure/services';
+import { ENTITIES, SOCKET_ENTITIES } from './app.entities';
 import {
   FILE_PATHS_ARR,
   FILE_PUBLIC_ROOT,
@@ -11,6 +11,7 @@ import { promises as fs } from 'fs';
 import { resolve } from 'path';
 import { FileSaverModule } from './file-saver/module';
 import { SocketModule } from '@socket/module';
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
@@ -18,10 +19,13 @@ import { SocketModule } from '@socket/module';
     FileSaverModule,
     SocketModule,
   ],
+  controllers: [AppController],
 })
 export class AppModule implements OnModuleInit {
   public async onModuleInit(): Promise<void> {
     initializeSources(ENTITIES);
+
+    initializeEkSources(SOCKET_ENTITIES);
 
     await Promise.all([
       fs.mkdir(FILE_TEMP_ROOT, { recursive: true }),

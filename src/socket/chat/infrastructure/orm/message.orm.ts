@@ -10,10 +10,10 @@ import {
 import { ChatMessageAttachmentOrm } from './message-attachment.orm';
 import { ChatUserOrm } from './user.orm';
 
-@Entity('CHATMENSAJE', { schema: 'dbo' })
+@Entity('CHATMENSAJE')
 @Index('IX_CHATMENSAJE_CONVERSACION_OID', ['conversationId', 'id'])
 @Index('IX_CHATMENSAJE_NOLEIDO_DEST_CONV_OID', ['recipientUserId', 'conversationId', 'id'], {
-  where: 'FECELI IS NULL',
+  where: '"FECELI" IS NULL',
 })
 export class ChatMessageOrm {
   @PrimaryGeneratedColumn({ name: 'OID' })
@@ -36,7 +36,7 @@ export class ChatMessageOrm {
   @JoinColumn({ name: 'CHATUSUREG2' })
   recipientUser: ChatUserOrm;
 
-  @Column({ name: 'CONTENIDO', type: 'varbinary', length: 'max' })
+  @Column({ name: 'CONTENIDO', type: 'bytea', nullable: true })
   content: Buffer;
 
   @OneToMany(() => ChatMessageAttachmentOrm, attachment => attachment.message)

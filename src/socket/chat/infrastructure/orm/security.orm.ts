@@ -1,7 +1,7 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { ChatUserOrm } from './user.orm';
 
-@Entity('CHATSEGURIDAD', { schema: 'dbo' })
+@Entity('CHATSEGURIDAD')
 @Index('UQ_CHATSEGURIDAD_CHATUSUREG', ['userId'], { unique: true })
 export class ChatSecurityOrm {
   @PrimaryGeneratedColumn({ name: 'OID' })

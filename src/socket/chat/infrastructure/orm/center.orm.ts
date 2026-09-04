@@ -1,8 +1,8 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('ADNCENATE')
-export class _PrivSecEkCenterOrm {
-  @PrimaryGeneratedColumn({ name: 'OID', type: 'tinyint' })
+export class CenterOrm {
+  @PrimaryGeneratedColumn({ name: 'OID', type: 'smallint' })
   id: number;
 
   @Column({ name: 'CODIGO', type: 'varchar', length: 10 })
@@ -17,6 +17,6 @@ export class _PrivSecEkCenterOrm {
   @Column({ name: 'NIT', type: 'varchar', length: 20, nullable: true })
   nit: string;
 
-  @Column({ name: 'ORIGINALID', type: 'tinyint', nullable: true })
+  @Column({ name: 'ORIGINALID', type: 'smallint', nullable: true })
   originalId: number;
 }

@@ -18,6 +18,7 @@ const extra = {
 };
 
 let entities: EntitySchema<any>[] = [];
+let socketEntities: EntitySchema<any>[] = [];
 
 export const AGU_DS = new DataSource({
   host: processEnv.AGU_HOST_DB,
@@ -61,20 +62,6 @@ export const AMM_DS = new DataSource({
   extra,
 });
 
-export const EK_DS = new DataSource({
-  host: processEnv.EK_HOST_DB,
-  username: processEnv.EK_USERNAME_DB,
-  password: processEnv.EK_PASS_DB,
-  database: processEnv.EK_NAME_DB,
-  synchronize: false,
-  type,
-  port,
-  logging,
-  entities,
-  options,
-  extra,
-});
-
 export const SJ_DS = new DataSource({
   host: processEnv.SJ_HOST_DB,
   username: processEnv.SJ_USERNAME_DB,
@@ -103,6 +90,21 @@ export const VDP_DS = new DataSource({
   extra,
 });
 
+export const SKS_DS = new DataSource({
+  host: processEnv.SKS_HOST_DB,
+  username: processEnv.SKS_USERNAME_DB,
+  password: processEnv.SKS_PASS_DB,
+  database: processEnv.SKS_NAME_DB,
+  synchronize: false,
+  type: 'postgres',
+  port: 5432,
+  entities: socketEntities,
+  invalidWhereValuesBehavior: {
+    null: 'ignore',
+    undefined: 'ignore',
+  },
+});
+
 const logs = (success: boolean, ctx: string, err?: any): void => {
   if (success) console.log(`Db connection success,`, `${ctx} was started`);
   else
@@ -118,7 +120,6 @@ export const initializeSources = (entities: EntityTarget<unknown>[]) => {
     (AGU_DS.options.entities as EntityTarget<unknown>[]).push(...entities);
     (AC_DS.options.entities as EntityTarget<unknown>[]).push(...entities);
     (AMM_DS.options.entities as EntityTarget<unknown>[]).push(...entities);
-    (EK_DS.options.entities as EntityTarget<unknown>[]).push(...entities);
     (SJ_DS.options.entities as EntityTarget<unknown>[]).push(...entities);
     (VDP_DS.options.entities as EntityTarget<unknown>[]).push(...entities);
 
@@ -134,10 +135,6 @@ export const initializeSources = (entities: EntityTarget<unknown>[]) => {
       .then(() => logs(true, GCM_CONTEXTS.AMMEDICAL.getCode()))
       .catch(err => logs(false, GCM_CONTEXTS.AMMEDICAL.getCode(), err));
 
-    EK_DS.initialize()
-      .then(() => logs(true, GCM_CONTEXTS.EKLIPSE.getCode()))
-      .catch(err => logs(false, GCM_CONTEXTS.EKLIPSE.getCode(), err));
-
     SJ_DS.initialize()
       .then(() => logs(true, GCM_CONTEXTS.SANJUAN.getCode()))
       .catch(err => logs(false, GCM_CONTEXTS.SANJUAN.getCode(), err));
@@ -145,6 +142,16 @@ export const initializeSources = (entities: EntityTarget<unknown>[]) => {
     VDP_DS.initialize()
       .then(() => logs(true, GCM_CONTEXTS.VALLEDUPAR.getCode()))
       .catch(err => logs(false, GCM_CONTEXTS.VALLEDUPAR.getCode(), err));
+  }
+};
+
+export const initializeEkSources = (entities: EntityTarget<unknown>[]) => {
+  if (processEnv.CONNECT_WITH_DB) {
+    (SKS_DS.options.entities as EntityTarget<unknown>[]).push(...entities);
+
+    SKS_DS.initialize()
+      .then(() => logs(true, 'Sockets Database'))
+      .catch(err => logs(false, 'Sockets Database', err));
   }
 };
 
@@ -160,9 +167,9 @@ export const switchConn = (ctx: GcmContextType) => {
       return VDP_DS;
     case GCM_CONTEXTS.AMMEDICAL:
       return AMM_DS;
-    case GCM_CONTEXTS.EKLIPSE:
-      return EK_DS;
     default:
       throw new Error('No existe datasource con este contexto');
   }
 };
+
+export const switchSocketsConn = () => SKS_DS;

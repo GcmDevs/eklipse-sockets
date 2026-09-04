@@ -1,7 +1,7 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { ChatMessageOrm } from './message.orm';
 
-@Entity('CHATMENARCHIVO', { schema: 'dbo' })
+@Entity('CHATMENARCHIVO')
 @Index('IX_CHATMENARCHIVO_CHATMENSAJE', ['messageId'])
 export class ChatMessageAttachmentOrm {
   @PrimaryGeneratedColumn({ name: 'OID' })
@@ -14,6 +14,6 @@ export class ChatMessageAttachmentOrm {
   @JoinColumn({ name: 'CHATMENSAJE' })
   message: ChatMessageOrm;
 
-  @Column({ name: 'UBICACION', length: 500 })
+  @Column({ name: 'UBICACION', length: 20 })
   path: string;
 }

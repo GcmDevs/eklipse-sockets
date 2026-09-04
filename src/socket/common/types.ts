@@ -9,7 +9,7 @@ export interface SocketUser {
   clientApp: string;
 }
 
-export type SocketUserRole = 'USUARIO' | 'PACIENTE';
+export type SocketUserRole = 'USUARIO' | 'TERCERO' | 'PACIENTE';
 
 export const normalizeSocketDocument = (value: unknown): string =>
   typeof value === 'string' ? value.trim().toUpperCase() : '';

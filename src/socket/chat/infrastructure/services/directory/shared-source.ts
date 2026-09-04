@@ -1,12 +1,11 @@
-import { GCM_CONTEXTS } from '@common/domain/types';
-import { switchConn } from '@common/infrastructure/services';
+import { switchSocketsConn } from '@common/infrastructure/services';
 import type { RegisteredChatUser } from '@socket/chat/domain/types';
 import { normalizeDocument } from '@socket/chat/domain/types';
 import type { ChatUserOrm } from '@socket/chat/infrastructure/orm';
 
 export class ChatDirectorySharedSource {
   protected readonly MAX_SEARCH_RESULTS = 20;
-  protected readonly sharedConn = switchConn(GCM_CONTEXTS.EKLIPSE);
+  protected readonly sharedConn = switchSocketsConn();
 
   protected toChatUser(record: ChatUserOrm): RegisteredChatUser | undefined {
     const id = Number(record.id);

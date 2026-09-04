@@ -11,13 +11,13 @@ export class ChatUnreadCountForImpl extends ChatStoreSharedSource {
       .leftJoin(
         ChatConversationReadOrm,
         'reading',
-        'reading.CHATCONVERSACION = message.CHATCONVERSACION AND reading.CHATUSUREG = :userId',
+        'reading.conversationId = message.conversationId AND reading.userId = :userId',
         { userId }
       )
-      .select('COUNT(message.OID)', 'unreadCount')
-      .where('message.CHATUSUREG2 = :userId', { userId })
-      .andWhere('message.OID > COALESCE(reading.CHATMENSAJE, 0)')
-      .andWhere('message.FECELI IS NULL')
+      .select('COUNT(message.id)', 'unreadCount')
+      .where('message.recipientUserId = :userId', { userId })
+      .andWhere('message.id > COALESCE(reading.lastReadMessageId, 0)')
+      .andWhere('message.deletedAt IS NULL')
       .getRawOne<{ unreadCount: number | string }>();
 
     const unreadCount = Number(row?.unreadCount ?? 0);

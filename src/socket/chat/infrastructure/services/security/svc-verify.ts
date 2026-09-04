@@ -22,7 +22,7 @@ export class ChatSecurityVerifyImpl extends ChatSecuritySharedSource {
       .getRepository(ChatSecurityOrm)
       .createQueryBuilder('security')
       .addSelect('security.pinHash')
-      .where('security.CHATUSUREG = :userId', { userId })
+      .where('security.userId = :userId', { userId })
       .getOne();
     if (!security?.pinHash) return { valid: false };
 

@@ -1,11 +1,11 @@
 import {
   GcmContextCode,
   GcmContextType,
-  USU_EXTS,
-  UsuExtCode,
-  UsuExtType,
+  TIPOS_USUARIO,
+  TipoUsuarioCode,
+  TipoUsuarioType,
   gcmContextFactory,
-  usuExtTypeFactory,
+  tipoUsuarioTypeFactory,
 } from '../../domain/types';
 import { jwtDecode } from 'jwt-decode';
 import { RSAServices } from './rsa';
@@ -16,7 +16,7 @@ export interface IAuthToken {
   sub: GcmContextCode;
   dcm: string;
   fnm: string;
-  rol: UsuExtCode;
+  rol: TipoUsuarioCode;
   rst: boolean;
   iat?: number;
   exp?: number;
@@ -30,7 +30,7 @@ export interface ITokenDecoded {
     patientId: number;
   };
   passWasReset: boolean;
-  role: UsuExtType;
+  role: TipoUsuarioType;
   context: GcmContextType;
   createdAt: Date;
   expiredAt: Date;
@@ -52,7 +52,7 @@ const decodeToken = (token: string): ITokenDecoded => {
         fullName: tkDcd.fnm,
         patientId: tkDcd.pid ? RSAServices.decryptId(tkDcd.pid) : null!,
       },
-      role: tkDcd.rol ? usuExtTypeFactory(tkDcd.rol) : USU_EXTS.GENUSUARIO,
+      role: tkDcd.rol ? tipoUsuarioTypeFactory(tkDcd.rol) : TIPOS_USUARIO.USUARIO,
       passWasReset: tkDcd.rst,
       context: gcmContextFactory(tkDcd.sub),
       createdAt: _tokenDateToDate(tkDcd.iat),

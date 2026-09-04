@@ -3,10 +3,10 @@ import { REQUEST } from '@nestjs/core';
 import { DataSource, QueryRunner } from 'typeorm';
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ITokenDecoded, JWTServices } from '../../application/services';
-import { GCM_CONTEXTS, GcmContextType } from '../../domain/types';
+import { GcmContextType } from '../../domain/types';
 import { _PrivSecUserOrm } from '../orm/user.orm';
 import { fetchAuthsByUser } from './authorities';
-import { switchConn } from './connections';
+import { switchConn, switchSocketsConn } from './connections';
 
 @Injectable()
 export class BaseSource {
@@ -16,7 +16,7 @@ export class BaseSource {
 
   constructor(@Inject(REQUEST) private _request: Request) {
     this.conn = switchConn(this.auth.context);
-    this.ekConn = switchConn(GCM_CONTEXTS.EKLIPSE);
+    this.ekConn = switchSocketsConn();
     this.qr = this.conn.createQueryRunner();
   }
 

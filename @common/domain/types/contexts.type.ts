@@ -3,15 +3,12 @@ import { CtmType } from './base.type';
 
 export enum AuthenticatedAs {
   USUARIO = 'usuario',
-  PACIENTE = 'paciente',
-  TERCERO = 'tercero'
 }
 
 export type AuthenticatedAsCode = AuthenticatedAs;
 
 export enum GcmContexts {
   SANJUAN = 'SANJUAN',
-  EKLIPSE = 'EKLIPSE',
   AGUACHICA = 'AGUACHICA',
   AMMEDICAL = 'AMMEDICAL',
   ALTACENTRO = 'ALTACENTRO',
@@ -40,7 +37,6 @@ export class GcmContextType extends CtmType<GcmContextCode> {
   }
 }
 
-const EKLIPSE = new GcmContextType(99, GcmContexts.EKLIPSE, 'Eklipse GCM (Common DB)', 'EK', 99);
 const ALTACENTRO = new GcmContextType(1, GcmContexts.ALTACENTRO, 'Centro/Alta complejidad', 'CM/AC', 2);
 const AGUACHICA = new GcmContextType(3, GcmContexts.AGUACHICA, 'Alta complejidad (Aguachica)', 'AGU', 1);
 const AMMEDICAL = new GcmContextType(4, GcmContexts.AMMEDICAL, 'AMMedical', 'AM', 3);
@@ -50,7 +46,6 @@ const VALLEDUPAR = new GcmContextType(6, GcmContexts.VALLEDUPAR, 'Clinica Valled
 export function gcmContextFactory(code: GcmContextCode): GcmContextType {
   switch (code) {
     case GcmContexts.SANJUAN: return SANJUAN;
-    case GcmContexts.EKLIPSE: return EKLIPSE;
     case GcmContexts.AGUACHICA: return AGUACHICA;
     case GcmContexts.AMMEDICAL: return AMMEDICAL;
     case GcmContexts.ALTACENTRO: return ALTACENTRO;
@@ -59,11 +54,9 @@ export function gcmContextFactory(code: GcmContextCode): GcmContextType {
   }
 }
 
-export const GCM_CONTEXTS = { AGUACHICA, ALTACENTRO, AMMEDICAL, EKLIPSE, SANJUAN, VALLEDUPAR };
+export const GCM_CONTEXTS = { AGUACHICA, ALTACENTRO, AMMEDICAL, SANJUAN, VALLEDUPAR };
 
 export const GCM_CONTEXTS_VALUES = Object.values(GCM_CONTEXTS);
-
-export const ALL_CONTEXTS_WITH_AUTHORITIES = GCM_CONTEXTS_VALUES.filter((context) => context.getCode() !== GcmContexts.EKLIPSE);
 
 export const additionalDataByCentro = (context: GcmContextType, id?: number, centroId?: number) => {
   switch (context) {

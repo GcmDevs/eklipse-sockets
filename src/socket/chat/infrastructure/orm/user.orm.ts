@@ -1,6 +1,7 @@
+import { TIPOS_USUARIO, TipoUsuarioCode } from '@common/domain/types';
 import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity('CHATUSUREG', { schema: 'dbo' })
+@Entity('CHATUSUREG')
 @Index('UQ_CHATUSUREG_USUDOCUME', ['document'], { unique: true })
 export class ChatUserOrm {
   @PrimaryGeneratedColumn({ name: 'OID' })
@@ -11,4 +12,7 @@ export class ChatUserOrm {
 
   @Column({ name: 'USUDESCRI' })
   fullName: string;
+
+  @Column({ name: 'TIPOUSUARIO', type: 'smallint', default: TIPOS_USUARIO.USUARIO.getCode() })
+  typeCode: TipoUsuarioCode;
 }
