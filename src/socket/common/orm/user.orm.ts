@@ -3,7 +3,7 @@ import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('CHATUSUREG')
 @Index('UQ_CHATUSUREG_USUDOCUME', ['document'], { unique: true })
-export class ChatUserOrm {
+export class SocketUserOrm {
   @PrimaryGeneratedColumn({ name: 'OID' })
   id: number;
 

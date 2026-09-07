@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { RegisteredChatUser } from '@socket/chat/domain/types';
 import { normalizeDocument } from '@socket/chat/domain/types';
-import { ChatUserOrm } from '@socket/chat/infrastructure/orm';
+import { SocketUserOrm } from '@socket/common/orm';
 import { ChatDirectorySharedSource } from './shared-source';
 
 @Injectable()
@@ -18,7 +18,7 @@ export class ChatDirectorySearchImpl extends ChatDirectorySharedSource {
     // Use an explicit escape character so user input cannot become a LIKE pattern.
     const escapedTerm = term.replace(/[!%_]/g, character => `!${character}`);
     const queryBuilder = this.sharedConn
-      .getRepository(ChatUserOrm)
+      .getRepository(SocketUserOrm)
       .createQueryBuilder('chatUser')
       .where(
         `(chatUser.document ILIKE :term ESCAPE '!'

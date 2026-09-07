@@ -1,5 +1,5 @@
+import { SocketUserOrm } from '@socket/common/orm';
 import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { ChatUserOrm } from './user.orm';
 
 @Entity('CHATSEGURIDAD')
 @Index('UQ_CHATSEGURIDAD_CHATUSUREG', ['userId'], { unique: true })
@@ -10,9 +10,9 @@ export class ChatSecurityOrm {
   @Column({ name: 'CHATUSUREG' })
   userId: number;
 
-  @ManyToOne(() => ChatUserOrm, { onDelete: 'CASCADE' })
+  @ManyToOne(() => SocketUserOrm, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'CHATUSUREG' })
-  user: ChatUserOrm;
+  user: SocketUserOrm;
 
   @Column({ name: 'PINHASH', length: 100, nullable: true, select: false })
   pinHash: string | null;

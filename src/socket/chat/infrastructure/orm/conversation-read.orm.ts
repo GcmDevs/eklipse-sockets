@@ -1,7 +1,7 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { ChatConversationOrm } from './conversation.orm';
 import { ChatMessageOrm } from './message.orm';
-import { ChatUserOrm } from './user.orm';
+import { SocketUserOrm } from '@socket/common/orm';
 
 @Entity('CHATCONLECTURA')
 @Index('UQ_CHATCONLECTURA_USUARIO_CONVERSACION', ['userId', 'conversationId'], {
@@ -21,9 +21,9 @@ export class ChatConversationReadOrm {
   @Column({ name: 'CHATUSUREG' })
   userId: number;
 
-  @ManyToOne(() => ChatUserOrm)
+  @ManyToOne(() => SocketUserOrm)
   @JoinColumn({ name: 'CHATUSUREG' })
-  user: ChatUserOrm;
+  user: SocketUserOrm;
 
   @Column({ name: 'CHATMENSAJE', nullable: true })
   lastReadMessageId?: number | null;

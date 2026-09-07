@@ -5,7 +5,8 @@ import { _PrivSecUserOrm } from '@common/infrastructure/orm/user.orm';
 import { switchConn, switchSocketsConn } from '@common/infrastructure/services';
 import { CommonGuards } from '@common/presentation/decorators';
 import { normalizeDocument } from '@socket/chat/domain/types';
-import { ChatUserOrm, LastUserRegisteredByContextOrm } from '@socket/chat/infrastructure/orm';
+import { LastUserRegisteredByContextOrm } from '@socket/chat/infrastructure/orm';
+import { SocketUserOrm } from '@socket/common/orm';
 import { EntityManager, MoreThan, Repository } from 'typeorm';
 
 const USER_BATCH_SIZE = 500;
@@ -41,10 +42,9 @@ interface BatchSynchronizationResult {
   registered: number;
 }
 
-@ApiTags('App')
 @CommonGuards()
 @Controller()
-export class AppController {
+export class AddNewUsersFromDimController {
   private activeSynchronization?: Promise<UserSynchronizationResult>;
 
   @Post('register-new-users')
@@ -168,7 +168,7 @@ export class AppController {
       throw new Error(`No fue posible determinar el siguiente OID de ${context.getCode()}.`);
     }
 
-    const usersByDocument = new Map<string, Pick<ChatUserOrm, 'document' | 'fullName'>>();
+    const usersByDocument = new Map<string, Pick<SocketUserOrm, 'document' | 'fullName'>>();
     for (const user of users) {
       const document = normalizeDocument(String(user.document ?? ''));
       if (!document || usersByDocument.has(document)) continue;
@@ -179,7 +179,7 @@ export class AppController {
       });
     }
 
-    const chatUserRepository = manager.getRepository(ChatUserOrm);
+    const chatUserRepository = manager.getRepository(SocketUserOrm);
     const documents = [...usersByDocument.keys()];
     const existingUsers = documents.length
       ? await chatUserRepository
@@ -200,7 +200,7 @@ export class AppController {
       const insertion = await chatUserRepository
         .createQueryBuilder()
         .insert()
-        .into(ChatUserOrm)
+        .into(SocketUserOrm)
         .values(newUsers)
         .orIgnore()
         .execute();

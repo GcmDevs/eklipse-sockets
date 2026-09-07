@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { RegisteredChatUser } from '@socket/chat/domain/types';
 import { normalizeDocument } from '@socket/chat/domain/types';
-import { ChatUserOrm } from '@socket/chat/infrastructure/orm';
+import { SocketUserOrm } from '@socket/common/orm';
 import { ChatDirectorySharedSource } from './shared-source';
 
 @Injectable()
@@ -10,7 +10,7 @@ export class ChatDirectoryFindByDocumentImpl extends ChatDirectorySharedSource {
     const normalized = normalizeDocument(document);
     if (!normalized) return undefined;
 
-    const record = await this.sharedConn.getRepository(ChatUserOrm).findOne({
+    const record = await this.sharedConn.getRepository(SocketUserOrm).findOne({
       where: { document: normalized },
     });
     return record ? this.toChatUser(record) : undefined;

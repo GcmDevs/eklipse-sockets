@@ -10,16 +10,16 @@ import {
 import { promises as fs } from 'fs';
 import { resolve } from 'path';
 import { FileSaverModule } from './file-saver/module';
+import { SocketsControllers } from '@socket/controllers';
 import { SocketModule } from '@socket/module';
-import { AppController } from './app.controller';
 
 @Module({
   imports: [
     // --- AVOID NOWRAP --- //
     FileSaverModule,
+    SocketsControllers,
     SocketModule,
   ],
-  controllers: [AppController],
 })
 export class AppModule implements OnModuleInit {
   public async onModuleInit(): Promise<void> {

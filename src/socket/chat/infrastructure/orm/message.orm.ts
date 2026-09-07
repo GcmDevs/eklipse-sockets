@@ -8,7 +8,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { ChatMessageAttachmentOrm } from './message-attachment.orm';
-import { ChatUserOrm } from './user.orm';
+import { SocketUserOrm } from '@socket/common/orm';
 
 @Entity('CHATMENSAJE')
 @Index('IX_CHATMENSAJE_CONVERSACION_OID', ['conversationId', 'id'])
@@ -25,16 +25,16 @@ export class ChatMessageOrm {
   @Column({ name: 'CHATUSUREG1' })
   senderUserId: number;
 
-  @ManyToOne(() => ChatUserOrm)
+  @ManyToOne(() => SocketUserOrm)
   @JoinColumn({ name: 'CHATUSUREG1' })
-  senderUser: ChatUserOrm;
+  senderUser: SocketUserOrm;
 
   @Column({ name: 'CHATUSUREG2' })
   recipientUserId: number;
 
-  @ManyToOne(() => ChatUserOrm)
+  @ManyToOne(() => SocketUserOrm)
   @JoinColumn({ name: 'CHATUSUREG2' })
-  recipientUser: ChatUserOrm;
+  recipientUser: SocketUserOrm;
 
   @Column({ name: 'CONTENIDO', type: 'bytea', nullable: true })
   content: Buffer;

@@ -1,5 +1,5 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { ChatUserOrm } from './user.orm';
+import { SocketUserOrm } from '@socket/common/orm';
 import { ChatMessageOrm } from './message.orm';
 
 @Entity('CHATCONVERSACION')
@@ -13,16 +13,16 @@ export class ChatConversationOrm {
   @Column({ name: 'CHATUSUREG1' })
   firstUserId: number;
 
-  @ManyToOne(() => ChatUserOrm)
+  @ManyToOne(() => SocketUserOrm)
   @JoinColumn({ name: 'CHATUSUREG1' })
-  firstUser: ChatUserOrm;
+  firstUser: SocketUserOrm;
 
   @Column({ name: 'CHATUSUREG2' })
   secondUserId: number;
 
-  @ManyToOne(() => ChatUserOrm)
+  @ManyToOne(() => SocketUserOrm)
   @JoinColumn({ name: 'CHATUSUREG2' })
-  secondUser: ChatUserOrm;
+  secondUser: SocketUserOrm;
 
   @Column({ name: 'CHATMENSAJE', nullable: true })
   lastMessageId?: number | null;
@@ -34,9 +34,9 @@ export class ChatConversationOrm {
   @Column({ name: 'CHATUSUREG3', nullable: true })
   lastSenderUserId?: number | null;
 
-  @ManyToOne(() => ChatUserOrm, { nullable: true })
+  @ManyToOne(() => SocketUserOrm, { nullable: true })
   @JoinColumn({ name: 'CHATUSUREG3' })
-  lastSenderUser: ChatUserOrm;
+  lastSenderUser: SocketUserOrm;
 
   @Column({ name: 'FECCRE' })
   createdAt: Date;
