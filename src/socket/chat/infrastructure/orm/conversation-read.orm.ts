@@ -1,7 +1,7 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { ChatConversationOrm } from './conversation.orm';
 import { ChatMessageOrm } from './message.orm';
-import { SocketUserOrm } from '@socket/common/orm';
+import { SocketUserOrm } from '@socket/common/infrastructure/orm';
 
 @Entity('CHATCONLECTURA')
 @Index('UQ_CHATCONLECTURA_USUARIO_CONVERSACION', ['userId', 'conversationId'], {

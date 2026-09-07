@@ -1,12 +1,12 @@
 import { Controller, Post, ServiceUnavailableException } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation } from '@nestjs/swagger';
 import { GCM_CONTEXTS_VALUES, GcmContextCode, GcmContextType } from '@common/domain/types';
 import { _PrivSecUserOrm } from '@common/infrastructure/orm/user.orm';
 import { switchConn, switchSocketsConn } from '@common/infrastructure/services';
-import { CommonGuards } from '@common/presentation/decorators';
+import { Authorities, CommonGuards } from '@common/presentation/decorators';
 import { normalizeDocument } from '@socket/chat/domain/types';
 import { LastUserRegisteredByContextOrm } from '@socket/chat/infrastructure/orm';
-import { SocketUserOrm } from '@socket/common/orm';
+import { SocketUserOrm } from '@socket/common/infrastructure/orm';
 import { EntityManager, MoreThan, Repository } from 'typeorm';
 
 const USER_BATCH_SIZE = 500;
@@ -47,6 +47,7 @@ interface BatchSynchronizationResult {
 export class AddNewUsersFromDimController {
   private activeSynchronization?: Promise<UserSynchronizationResult>;
 
+  @Authorities()
   @Post('register-new-users')
   @ApiOperation({ summary: 'Registra en el chat los usuarios nuevos de cada contexto' })
   public async registerNewUsers(): Promise<UserSynchronizationResult> {

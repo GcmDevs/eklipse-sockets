@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 import { switchSocketsConn } from '@common/infrastructure/services';
-import { SocketUserOrm } from '@socket/common/orm';
+import { SocketUserOrm } from '@socket/common/infrastructure/orm';
 import { ChatAccessPolicyOrm } from '../../orm/access-policy.orm';
 import { ChatAccessContactOrm } from '../../orm/access-contact.orm';
 import { ChatAccessLinkOrm } from '../../orm/access-link.orm';
@@ -58,7 +58,8 @@ export class ChatAccessService {
   async configure(
     userId: number,
     policy: ChatAccessPolicy,
-    contactUserIds: readonly number[]
+    contactUserIds: readonly number[],
+    manager?: EntityManager
   ): Promise<void> {
     const contacts = [...new Set(contactUserIds)];
     if (
@@ -75,7 +76,7 @@ export class ChatAccessService {
     ) {
       throw new Error('Invalid chat access policy');
     }
-    await switchSocketsConn().transaction('SERIALIZABLE', async manager => {
+    const persist = async (manager: EntityManager) => {
       await manager.getRepository(ChatAccessPolicyOrm).save({
         userId,
         incomingRestricted: policy.incomingRestricted,
@@ -87,7 +88,9 @@ export class ChatAccessService {
         await manager
           .getRepository(ChatAccessContactOrm)
           .insert(contacts.map(contactUserId => ({ userId, contactUserId })));
-    });
+    };
+    if (manager) await persist(manager);
+    else await switchSocketsConn().transaction('SERIALIZABLE', persist);
   }
 
   async revokeLink(firstId: number, secondId: number): Promise<void> {

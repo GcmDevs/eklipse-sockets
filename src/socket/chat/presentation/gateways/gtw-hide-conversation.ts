@@ -6,7 +6,7 @@ import type {
   HideChatConversationPayload,
   RegisteredChatUser,
 } from '@socket/chat/domain/types';
-import { SOCKET_EVENTS } from '@socket/common/events';
+import { SOCKET_EVENTS } from '@socket/common/application/constants/events';
 import { SharedChatGateway } from './gtw-shared';
 
 @Injectable()

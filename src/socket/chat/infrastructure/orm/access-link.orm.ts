@@ -1,5 +1,5 @@
 import { Check, Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
-import { SocketUserOrm } from '@socket/common/orm';
+import { SocketUserOrm } from '@socket/common/infrastructure/orm';
 
 @Entity('CHATENLACE')
 @Check('CK_CHATENLACE_ORDEN', '"CHATUSUREG1" < "CHATUSUREG2"')

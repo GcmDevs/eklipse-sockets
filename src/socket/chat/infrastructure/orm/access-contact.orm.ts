@@ -1,5 +1,5 @@
 import { Check, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
-import { SocketUserOrm } from '@socket/common/orm';
+import { SocketUserOrm } from '@socket/common/infrastructure/orm';
 
 @Entity('CHATCONTACTOPERMITIDO')
 @Check('CK_CHATCONTACTOPERMITIDO_DISTINTOS', '"CHATUSUREG" <> "CONTACTO"')

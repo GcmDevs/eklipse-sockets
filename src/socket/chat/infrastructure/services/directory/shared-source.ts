@@ -3,7 +3,7 @@ import { ChatAccessService } from '../access';
 import { switchSocketsConn } from '@common/infrastructure/services';
 import type { RegisteredChatUser } from '@socket/chat/domain/types';
 import { normalizeDocument } from '@socket/chat/domain/types';
-import { SocketUserOrm } from '@socket/common/orm';
+import { SocketUserOrm } from '@socket/common/infrastructure/orm';
 
 @Injectable()
 export class ChatDirectorySharedSource {

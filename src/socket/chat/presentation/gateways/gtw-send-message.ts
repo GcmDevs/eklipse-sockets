@@ -8,7 +8,7 @@ import type {
   SendChatMessagePayload,
 } from '@socket/chat/domain/types';
 import { ChatReplyMessageNotFoundError } from '@socket/chat/domain/types';
-import { SOCKET_EVENTS } from '@socket/common/events';
+import { SOCKET_EVENTS } from '@socket/common/application/constants/events';
 import {
   FILE_PATHS,
   MAX_CHAT_FILES_PER_MESSAGE,

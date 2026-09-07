@@ -1,4 +1,5 @@
-import { ChatAccessService } from './infrastructure/services/access';
+import { ChatAccessService, ManageChatAccessService } from './infrastructure/services/access';
+import { ChatAccessController } from './presentation/controllers';
 import { Module } from '@nestjs/common';
 import {
   ChatGateway,
@@ -19,7 +20,7 @@ import {
   StartConversationImpl,
   UnlockSecurityImpl,
   UpdateTypingImpl,
-} from './presentation';
+} from './presentation/gateways';
 import { FileSaverModule } from '@file-saver/module';
 import { SocketCommonModule } from '@socket/common/module';
 import {
@@ -80,6 +81,8 @@ const STORE_SERVICES = [
   ChatStoreService,
 ];
 
+const ACCESS_SERVICES = [ManageChatAccessService, ChatAccessService];
+
 const GATEWAYS_SERVICES = [
   ChatGateway,
   handleConnectionImpl,
@@ -102,9 +105,10 @@ const GATEWAYS_SERVICES = [
 ];
 
 @Module({
+  controllers: [ChatAccessController],
   imports: [SocketCommonModule, FileSaverModule],
   providers: [
-    ChatAccessService,
+    ...ACCESS_SERVICES,
     ...DIRECTORY_SERVICES,
     ...SECURITY_SERVICES,
     ...STORE_SERVICES,

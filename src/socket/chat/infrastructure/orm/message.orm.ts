@@ -8,7 +8,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { ChatMessageAttachmentOrm } from './message-attachment.orm';
-import { SocketUserOrm } from '@socket/common/orm';
+import { SocketUserOrm } from '@socket/common/infrastructure/orm';
 
 @Entity('CHATMENSAJE')
 @Index('IX_CHATMENSAJE_CONVERSACION_OID', ['conversationId', 'id'])

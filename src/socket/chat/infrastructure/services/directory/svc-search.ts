@@ -1,7 +1,7 @@
 import { chatAccessPredicate } from '../access';
 import { Injectable } from '@nestjs/common';
 import type { RegisteredChatUser } from '@socket/chat/domain/types';
-import { SocketUserOrm } from '@socket/common/orm';
+import { SocketUserOrm } from '@socket/common/infrastructure/orm';
 import { ChatDirectorySharedSource } from './shared-source';
 
 @Injectable()

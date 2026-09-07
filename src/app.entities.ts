@@ -1,4 +1,4 @@
-import { SOCKET_ENTITIES as GEN_SOCKET_ENTITIES } from '@socket/common/orm';
+import { SOCKET_ENTITIES as GEN_SOCKET_ENTITIES } from '@socket/common/infrastructure/orm';
 import { CHAT_ENTITIES } from '@socket/chat/infrastructure/orm';
 
 export const ENTITIES = [

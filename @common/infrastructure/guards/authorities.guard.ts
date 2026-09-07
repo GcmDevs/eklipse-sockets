@@ -1,8 +1,7 @@
 import { Reflector } from '@nestjs/core';
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
-import { ADMIN_AUTHORITY } from '../../application/constants';
+import { ADMINS } from '@common/application/constants';
 import { JWTServices } from '../../application/services';
-import { fetchAuthsByUser } from '../services';
 
 @Injectable()
 export class AuthoritiesGuard implements CanActivate {
@@ -18,15 +17,7 @@ export class AuthoritiesGuard implements CanActivate {
 
     if (tkDcd.passWasReset) throw new Error('Debes cambiar tu contraseña antes de continuar');
 
-    let userAuthorities: string[] = [];
-
-    authorities.push(ADMIN_AUTHORITY);
-    const res = await fetchAuthsByUser({ tk });
-    userAuthorities = res.onlyCodes;
-
-    const hasAnyAuthority = () =>
-      userAuthorities.some((authority: string) => authorities.includes(authority));
-
-    return hasAnyAuthority();
+    if (ADMINS.indexOf(tkDcd.user.document) < 0) return false;
+    else return true;
   }
 }
