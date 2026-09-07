@@ -34,7 +34,7 @@ export class CreateEventImpl {
       return { ok: false, error: 'Este canal solo admite eventos del frontend de pacientes.' };
     }
 
-    const validation = validateEventInput(payload);
+    const validation = validateEventInput(payload, true);
     if (typeof validation === 'string') return { ok: false, error: validation };
 
     try {

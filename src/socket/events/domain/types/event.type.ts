@@ -7,6 +7,7 @@ export interface CreateEventPayload {
   startsAt?: unknown;
   endsAt?: unknown;
   organizerDescription?: unknown;
+  inviteeUserIds?: unknown;
 }
 
 export interface UpdateEventPayload extends CreateEventPayload {
@@ -86,4 +87,18 @@ export interface ValidatedCreateEvent {
   startsAt: Date;
   endsAt: Date;
   organizerDescription: string;
+  inviteeUserIds: number[];
+}
+
+export interface EventAudiencePatient {
+  userId: number;
+  document: string;
+  fullName: string;
+}
+
+export interface EventAudienceArea {
+  id: number;
+  code: string;
+  name: string;
+  patients: EventAudiencePatient[];
 }

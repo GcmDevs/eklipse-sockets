@@ -1,5 +1,6 @@
 import { _PrivSecAuthOrm } from './authority.orm';
 import { _PrivSecModuleOrm } from './module.orm';
+import { _PrivSecPacAreaOrm } from './patient-area.orm';
 import { _PrivSecPacAsUserOrm } from './patient-as-user.orm';
 import { _PrivSecRoleOrm } from './role.orm';
 import { _PrivSecSubModuleOrm } from './sub-module.orm';
@@ -12,4 +13,5 @@ export const _PRIV_ORM_AUTH_SEC_ENTITIES = [
   _PrivSecSubModuleOrm,
   _PrivSecUserOrm,
   _PrivSecPacAsUserOrm,
+  _PrivSecPacAreaOrm,
 ];

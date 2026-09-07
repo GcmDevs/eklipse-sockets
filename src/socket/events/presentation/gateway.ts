@@ -11,6 +11,7 @@ import type {
   CreatedEventData,
   CreateEventPayload,
   EventActionAck,
+  EventAudienceArea,
   NewEventInvitation,
   RegisteredEventData,
   RespondEventInvitationPayload,
@@ -19,6 +20,7 @@ import type {
 } from '@socket/events/domain/types';
 import { CreateEventImpl } from './create-event.impl';
 import { ListCreatedEventsImpl } from './list-created-events.impl';
+import { ListEventAudienceImpl } from './list-event-audience.impl';
 import { ListEventInvitationsImpl } from './list-event-invitations.impl';
 import { RespondEventInvitationImpl } from './respond-event-invitation.impl';
 import { UpdateEventImpl } from './update-event.impl';
@@ -28,10 +30,18 @@ export class EventsGateway {
   constructor(
     private readonly createEventImpl: CreateEventImpl,
     private readonly listCreatedEventsImpl: ListCreatedEventsImpl,
+    private readonly listEventAudienceImpl: ListEventAudienceImpl,
     private readonly updateEventImpl: UpdateEventImpl,
     private readonly listEventInvitationsImpl: ListEventInvitationsImpl,
     private readonly respondEventInvitationImpl: RespondEventInvitationImpl
   ) {}
+
+  @SubscribeMessage(SOCKET_EVENTS.events.audienceList)
+  listEventAudience(
+    @ConnectedSocket() client: Socket
+  ): Promise<EventActionAck<EventAudienceArea[]>> {
+    return this.listEventAudienceImpl.execute(client);
+  }
 
   @SubscribeMessage(SOCKET_EVENTS.events.create)
   createEvent(

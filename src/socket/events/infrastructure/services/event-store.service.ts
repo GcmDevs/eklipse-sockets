@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { GCM_CONTEXTS, TIPOS_USUARIO } from '@common/domain/types';
+import { GcmContextCode, gcmContextFactory, TIPOS_USUARIO } from '@common/domain/types';
 import { switchConn, switchSocketsConn } from '@common/infrastructure/services';
 import type { SocketUser } from '@socket/common/types';
 import {
@@ -13,6 +13,9 @@ import {
 } from '@socket/events/domain/types';
 import { EventInvitationOrm, EventOrm } from '@socket/events/infrastructure/orm';
 import { _PrivSecPacAsUserOrm } from '@common/infrastructure/orm/patient-as-user.orm';
+import { _PrivSecPacAreaOrm } from '@common/infrastructure/orm/patient-area.orm';
+import type { EventAudienceArea } from '@socket/events/domain/types';
+import { In } from 'typeorm';
 
 type RegisteredPatientIdentity = {
   userId: number;
@@ -28,7 +31,10 @@ export class EventStoreService {
     user: SocketUser,
     input: ValidatedCreateEvent
   ): Promise<PersistedEventCreation> {
-    const registeredPatients = await this.registeredPatients();
+    const registeredPatients = await this.registeredPatients(user, input.inviteeUserIds);
+    if (registeredPatients.length !== input.inviteeUserIds.length) {
+      throw new Error('La selección contiene pacientes que no están registrados.');
+    }
 
     return this.sharedConn.transaction(async manager => {
       const createdAt = new Date();
@@ -97,6 +103,29 @@ export class EventStoreService {
         invitedUsersCount: invitations.length,
       };
     });
+  }
+
+  async eventAudience(user: SocketUser): Promise<EventAudienceArea[]> {
+    const context = gcmContextFactory(user.context as GcmContextCode);
+    const areas = await switchConn(context)
+      .getRepository(_PrivSecPacAreaOrm)
+      .find({
+        relations: { pacientes: true },
+        order: { nombre: 'ASC' },
+      });
+
+    return areas.map(area => ({
+      id: Number(area.id),
+      code: area.codigo,
+      name: area.nombre,
+      patients: (area.pacientes ?? [])
+        .map(patient => ({
+          userId: Number(patient.id),
+          document: patient.document,
+          fullName: patient.fullName,
+        }))
+        .sort((left, right) => left.fullName.localeCompare(right.fullName, 'es')),
+    }));
   }
 
   async eventsCreatedBy(user: SocketUser): Promise<RegisteredEventData[]> {
@@ -190,28 +219,22 @@ export class EventStoreService {
     return this.toInvitationData(invitation);
   }
 
-  private async registeredPatients(): Promise<RegisteredPatientIdentity[]> {
-    const patientsByIdentity = new Map<string, RegisteredPatientIdentity>();
+  private async registeredPatients(
+    user: SocketUser,
+    inviteeUserIds: number[]
+  ): Promise<RegisteredPatientIdentity[]> {
+    const context = gcmContextFactory(user.context as GcmContextCode);
+    const patients = await switchConn(context)
+      .getRepository(_PrivSecPacAsUserOrm)
+      .find({
+        where: { id: In(inviteeUserIds) },
+        select: { id: true },
+      });
 
-    const patientsByContext = await Promise.all(
-      /* ALL_CONTEXTS_WITH_AUTHORITIES */ [GCM_CONTEXTS.ALTACENTRO].map(async context => {
-        const patients = await switchConn(context)
-          .getRepository(_PrivSecPacAsUserOrm)
-          .find({ select: { id: true } });
-
-        return patients.map(patient => ({
-          userId: Number(patient.id),
-          centerId: context.getEkKey(),
-        }));
-      })
-    );
-
-    for (const patient of patientsByContext.flat()) {
-      if (!Number.isSafeInteger(patient.userId) || patient.userId <= 0) continue;
-      patientsByIdentity.set(`${patient.centerId}:${patient.userId}`, patient);
-    }
-
-    return [...patientsByIdentity.values()];
+    return patients.map(patient => ({
+      userId: Number(patient.id),
+      centerId: user.centerId,
+    }));
   }
 
   private toInvitationData(invitation: EventInvitationOrm): NewEventInvitation {
