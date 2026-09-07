@@ -1,16 +1,12 @@
+import { chatAccessPredicate } from '../access';
 import { Injectable } from '@nestjs/common';
 import type { RegisteredChatUser } from '@socket/chat/domain/types';
-import { normalizeDocument } from '@socket/chat/domain/types';
 import { SocketUserOrm } from '@socket/common/orm';
 import { ChatDirectorySharedSource } from './shared-source';
 
 @Injectable()
 export class ChatDirectorySearchImpl extends ChatDirectorySharedSource {
-  async execute(
-    query: string,
-    excludeDocument = '',
-    excludedDocuments: readonly string[] = []
-  ): Promise<RegisteredChatUser[]> {
+  async execute(query: string, actorId: number): Promise<RegisteredChatUser[]> {
     const term = query.trim().slice(0, 80);
     if (!term) return [];
 
@@ -25,25 +21,17 @@ export class ChatDirectorySearchImpl extends ChatDirectorySharedSource {
           OR chatUser.fullName ILIKE :term ESCAPE '!')`,
         { term: `%${escapedTerm}%` }
       );
-    const excluded = [
-      ...new Set(excludedDocuments.map(normalizeDocument).filter(document => document)),
-    ];
-    if (excluded.length) {
-      queryBuilder.andWhere('chatUser.document NOT IN (:...excludedDocuments)', {
-        excludedDocuments: excluded,
-      });
-    }
-
+    if (!Number.isSafeInteger(actorId) || actorId <= 0) return [];
+    queryBuilder.andWhere(chatAccessPredicate(':actorId', '"chatUser"."OID"'), { actorId });
     const records = await queryBuilder
       .orderBy('chatUser.fullName', 'ASC')
       .take(this.MAX_SEARCH_RESULTS)
       .getMany();
     const usersByDocument = new Map<string, RegisteredChatUser>();
-    const excludedCurrentUser = normalizeDocument(excludeDocument);
 
     for (const record of records) {
       const user = this.toChatUser(record);
-      if (user && user.document !== excludedCurrentUser) usersByDocument.set(user.document, user);
+      if (user) usersByDocument.set(user.document, user);
     }
 
     return [...usersByDocument.values()];

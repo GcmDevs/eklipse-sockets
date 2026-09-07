@@ -1,3 +1,5 @@
+import { Injectable } from '@nestjs/common';
+import { ChatAccessService } from '../access';
 import { CRYPTO_CHAT_SERVICES } from '@common/application/services';
 import { switchSocketsConn } from '@common/infrastructure/services';
 import { FILE_PATHS } from '@file-saver/locations';
@@ -26,7 +28,9 @@ export interface ChatUnreadState {
   hidden: boolean;
 }
 
+@Injectable()
 export class ChatStoreSharedSource {
+  constructor(protected readonly access: ChatAccessService) {}
   protected readonly MESSAGES_PAGE_SIZE = 30;
   protected readonly sharedConn = switchSocketsConn();
 
@@ -249,6 +253,16 @@ export class ChatStoreSharedSource {
     }
 
     return undefined;
+  }
+
+  protected async canAccessConversation(
+    conversation: ChatConversationOrm,
+    userId: number
+  ): Promise<boolean> {
+    if (!this.hasParticipant(conversation, userId)) return false;
+    const peerId =
+      conversation.firstUserId === userId ? conversation.secondUserId : conversation.firstUserId;
+    return this.access.canContact(userId, peerId);
   }
 
   protected findConversationById(id: number): Promise<ChatConversationOrm | null> {

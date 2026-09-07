@@ -11,7 +11,8 @@ export class ChatOpenImpl extends ChatStoreSharedSource {
     markAsRead = true
   ): Promise<ChatConversationDetails | undefined> {
     const conversation = await this.findConversationById(conversationId);
-    if (!conversation || !this.hasParticipant(conversation, currentUser.id)) return undefined;
+    if (!conversation || !(await this.canAccessConversation(conversation, currentUser.id)))
+      return undefined;
     if (markAsRead) await this.markConversationReadFor(conversation, currentUser.id);
     return this.detailsFor(conversation, currentUser.id, isOnline);
   }

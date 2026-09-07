@@ -9,7 +9,8 @@ export class ChatMarkConversationReadImpl extends ChatStoreSharedSource {
     currentUser: RegisteredChatUser
   ): Promise<boolean | undefined> {
     const conversation = await this.findConversationById(conversationId);
-    if (!conversation || !this.hasParticipant(conversation, currentUser.id)) return undefined;
+    if (!conversation || !(await this.canAccessConversation(conversation, currentUser.id)))
+      return undefined;
 
     await this.markConversationReadFor(conversation, currentUser.id);
     return true;

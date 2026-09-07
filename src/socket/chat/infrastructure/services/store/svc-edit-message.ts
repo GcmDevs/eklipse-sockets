@@ -25,6 +25,9 @@ export class ChatEditMessageImpl extends ChatStoreSharedSource {
       });
       const error = this.messageMutationErrorFor(message, currentUser.id);
       if (error) return { ok: false, error };
+      if (!(await this.access.canContact(currentUser.id, message.recipientUserId, manager))) {
+        return { ok: false, error: 'forbidden' };
+      }
       if (!content && !message.attachments.length) return { ok: false, error: 'empty' };
 
       message.content = content ? CRYPTO_CHAT_SERVICES.encrypt(content) : null;

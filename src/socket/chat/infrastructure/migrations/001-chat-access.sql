@@ -1,0 +1,57 @@
+-- PostgreSQL, sockets database. Apply before deploying the new backend.
+-- synchronize is disabled in this project. This script does not run at startup.
+BEGIN;
+
+CREATE TABLE IF NOT EXISTS "CHATPOLITICA" (
+  "CHATUSUREG" integer PRIMARY KEY REFERENCES "CHATUSUREG"("OID"),
+  "RESTRINGEENTRADA" boolean NOT NULL DEFAULT false,
+  "CONTACTOSCERRADOS" boolean NOT NULL DEFAULT false,
+  "DESCUBRETODOS" boolean NOT NULL DEFAULT false
+);
+
+CREATE TABLE IF NOT EXISTS "CHATCONTACTOPERMITIDO" (
+  "CHATUSUREG" integer NOT NULL REFERENCES "CHATUSUREG"("OID"),
+  "CONTACTO" integer NOT NULL REFERENCES "CHATUSUREG"("OID"),
+  PRIMARY KEY ("CHATUSUREG", "CONTACTO"),
+  CONSTRAINT "CK_CHATCONTACTOPERMITIDO_DISTINTOS" CHECK ("CHATUSUREG" <> "CONTACTO")
+);
+
+CREATE TABLE IF NOT EXISTS "CHATENLACE" (
+  "CHATUSUREG1" integer NOT NULL REFERENCES "CHATUSUREG"("OID"),
+  "CHATUSUREG2" integer NOT NULL REFERENCES "CHATUSUREG"("OID"),
+  "FECCRE" timestamp NOT NULL,
+  PRIMARY KEY ("CHATUSUREG1", "CHATUSUREG2"),
+  CONSTRAINT "CK_CHATENLACE_ORDEN" CHECK ("CHATUSUREG1" < "CHATUSUREG2")
+);
+
+-- Preserve the temporary configuration for users already registered at migration time.
+-- This seed is a one-time operation: do not rerun it after administrators change lists.
+INSERT INTO "CHATPOLITICA" ("CHATUSUREG", "RESTRINGEENTRADA", "DESCUBRETODOS")
+SELECT "OID", true, true FROM "CHATUSUREG"
+WHERE "USUDOCUME" IN ('49700354', '1020797793', '18935254')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO "CHATCONTACTOPERMITIDO" ("CHATUSUREG", "CONTACTO")
+SELECT owner."OID", contact."OID"
+FROM "CHATUSUREG" owner CROSS JOIN "CHATUSUREG" contact
+WHERE owner."USUDOCUME" IN ('49700354', '1020797793', '18935254')
+  AND contact."USUDOCUME" IN (
+    '1065819503', '7574298', '1067815542', '1193094890', '1003377965',
+    '49700354', '1020797793', '18935254'
+  ) AND owner."OID" <> contact."OID"
+ON CONFLICT DO NOTHING;
+
+-- Historical outgoing messages from protected users also establish an invitation.
+-- An empty conversation does not establish a link.
+INSERT INTO "CHATENLACE" ("CHATUSUREG1", "CHATUSUREG2", "FECCRE")
+SELECT LEAST(message."CHATUSUREG1", message."CHATUSUREG2"),
+       GREATEST(message."CHATUSUREG1", message."CHATUSUREG2"), MIN(message."FECCRE")
+FROM "CHATMENSAJE" message
+JOIN "CHATUSUREG" sender ON sender."OID" = message."CHATUSUREG1"
+WHERE sender."USUDOCUME" IN ('49700354', '1020797793', '18935254')
+  AND message."CHATUSUREG1" <> message."CHATUSUREG2"
+GROUP BY LEAST(message."CHATUSUREG1", message."CHATUSUREG2"),
+         GREATEST(message."CHATUSUREG1", message."CHATUSUREG2")
+ON CONFLICT DO NOTHING;
+
+COMMIT;

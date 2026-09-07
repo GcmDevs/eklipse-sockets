@@ -6,11 +6,7 @@ import type {
   RegisteredChatUser,
   StartConversationPayload,
 } from '@socket/chat/domain/types';
-import { normalizeDocument } from '@socket/chat/domain/types';
-import { ALTOS_MANDOS } from '@socket/common';
 import { SharedChatGateway } from './gtw-shared';
-
-const ALTOS_MANDOS_DOCUMENTS = new Set(ALTOS_MANDOS.map(normalizeDocument));
 
 @Injectable()
 export class StartConversationImpl extends SharedChatGateway {
@@ -41,17 +37,14 @@ export class StartConversationImpl extends SharedChatGateway {
       return { ok: false, error: 'Tu usuario ya no está registrado para utilizar el chat.' };
     }
     if (!contact) return { ok: false, error: 'No encontramos un usuario con ese documento.' };
-    if (
-      ALTOS_MANDOS_DOCUMENTS.has(normalizeDocument(contact.document)) &&
-      !this.canTalkWithAltosMandos(registeredCurrentUser.document)
-    ) {
-      return { ok: false, error: 'No encontramos un usuario con ese documento.' };
-    }
     if (contact.id === registeredCurrentUser.id) {
       return { ok: false, error: 'No puedes iniciar una conversación contigo mismo.' };
     }
 
     try {
+      if (!(await this.access.canContact(registeredCurrentUser.id, contact.id))) {
+        return { ok: false, error: 'No encontramos un usuario con ese documento.' };
+      }
       const details = await this.store.start(registeredCurrentUser, contact, document =>
         this.isOnline(document)
       );

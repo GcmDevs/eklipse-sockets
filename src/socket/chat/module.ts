@@ -1,3 +1,4 @@
+import { ChatAccessService } from './infrastructure/services/access';
 import { Module } from '@nestjs/common';
 import {
   ChatGateway,
@@ -102,6 +103,12 @@ const GATEWAYS_SERVICES = [
 
 @Module({
   imports: [SocketCommonModule, FileSaverModule],
-  providers: [...DIRECTORY_SERVICES, ...SECURITY_SERVICES, ...STORE_SERVICES, ...GATEWAYS_SERVICES],
+  providers: [
+    ChatAccessService,
+    ...DIRECTORY_SERVICES,
+    ...SECURITY_SERVICES,
+    ...STORE_SERVICES,
+    ...GATEWAYS_SERVICES,
+  ],
 })
 export class ChatModule {}

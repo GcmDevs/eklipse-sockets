@@ -1,9 +1,13 @@
+import { Injectable } from '@nestjs/common';
+import { ChatAccessService } from '../access';
 import { switchSocketsConn } from '@common/infrastructure/services';
 import type { RegisteredChatUser } from '@socket/chat/domain/types';
 import { normalizeDocument } from '@socket/chat/domain/types';
 import { SocketUserOrm } from '@socket/common/orm';
 
+@Injectable()
 export class ChatDirectorySharedSource {
+  constructor(protected readonly access: ChatAccessService) {}
   protected readonly MAX_SEARCH_RESULTS = 20;
   protected readonly sharedConn = switchSocketsConn();
 

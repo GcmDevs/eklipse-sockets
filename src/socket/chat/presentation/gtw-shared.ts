@@ -1,3 +1,4 @@
+import { ChatAccessService } from '@socket/chat/infrastructure/services/access';
 import { Injectable, Logger } from '@nestjs/common';
 import type { Socket } from 'socket.io';
 import type {
@@ -21,13 +22,10 @@ import {
 } from '@socket/chat/infrastructure/services';
 import { normalizeDocument } from '@socket/chat/domain/types';
 import { FileServerRegistry } from '@file-saver/registry';
-import { ADMINS, CAN_TALK_WITH_ALTOS_MANDOS } from '@socket/common';
+import { ADMINS } from '@socket/common';
 import { SocketClientRegistry } from '@socket/common/client-registry';
 
 const ONLINE_USERS_COUNT_ALLOWED_DOCUMENTS = new Set(ADMINS);
-const CAN_TALK_WITH_ALTOS_MANDOS_DOCUMENTS = new Set(
-  CAN_TALK_WITH_ALTOS_MANDOS.map(normalizeDocument)
-);
 const CHAT_SECURITY_LOCK_DELAY_MS = 10 * 60 * 1000;
 const SECURITY_LOCK_TIMEOUTS = new Map<string, NodeJS.Timeout>();
 
@@ -43,7 +41,8 @@ export class SharedChatGateway {
     protected readonly security: ChatSecurityService,
     protected readonly store: ChatStoreService,
     protected readonly fileRegistry: FileServerRegistry,
-    protected readonly clients: SocketClientRegistry
+    protected readonly clients: SocketClientRegistry,
+    protected readonly access: ChatAccessService
   ) {}
 
   protected async bootstrapFor(client: Socket, user: RegisteredChatUser): Promise<ChatBootstrap> {
@@ -129,6 +128,17 @@ export class SharedChatGateway {
     currentUser: RegisteredChatUser,
     conversationId: number
   ): Promise<void> {
+    const participantsNow = await this.store.participants(conversationId);
+    const peer = participantsNow.find(participant => participant.id !== currentUser.id);
+    if (
+      !participantsNow.some(participant => participant.id === currentUser.id) ||
+      !peer ||
+      !(await this.access.canContact(currentUser.id, peer.id)) ||
+      !(await this.access.canContact(peer.id, currentUser.id))
+    ) {
+      await this.stopClientTyping(client, currentUser);
+      return;
+    }
     const activeConversationId = Number(client.data.chatTypingConversationId);
     if (activeConversationId !== conversationId) {
       await this.stopClientTyping(client, currentUser);
@@ -183,6 +193,22 @@ export class SharedChatGateway {
     payload: unknown
   ): Promise<void> {
     for (const client of this.chatClientsFor(document)) {
+      const recipient = client.data.chatUser as RegisteredChatUser | undefined;
+      const data = payload as {
+        document?: string;
+        sender?: { document: string };
+        contact?: { document: string };
+      };
+      const authorDocument = data?.sender?.document ?? data?.contact?.document ?? data?.document;
+      if (authorDocument && recipient && normalizeDocument(authorDocument) !== recipient.document) {
+        try {
+          const author = await this.directory.findByDocument(authorDocument);
+          if (!author || !(await this.access.canContact(recipient.id, author.id))) continue;
+        } catch (error) {
+          this.logPersistenceError('validar los permisos de entrega', error);
+          continue;
+        }
+      }
       if (!this.isChatLocked(client)) client.emit(event, payload);
     }
   }
@@ -269,10 +295,6 @@ export class SharedChatGateway {
 
   protected onlineChatDocuments(): string[] {
     return this.clients.onlineDocuments().filter(document => this.isOnline(document));
-  }
-
-  protected canTalkWithAltosMandos(document: string): boolean {
-    return CAN_TALK_WITH_ALTOS_MANDOS_DOCUMENTS.has(normalizeDocument(document));
   }
 
   protected emitOnlineUsersCount(): void {

@@ -1,3 +1,4 @@
+import { chatAccessPredicate } from '../access';
 import { Injectable } from '@nestjs/common';
 import type { ChatConversationSummary } from '@socket/chat/domain/types';
 import { ChatConversationOrm } from '@socket/chat/infrastructure/orm';
@@ -9,7 +10,10 @@ export class ChatListForImpl extends ChatStoreSharedSource {
     userId: number,
     isOnline: (contactDocument: string) => boolean
   ): Promise<ChatConversationSummary[]> {
-    const conversations = await this.sharedConn.getRepository(ChatConversationOrm).find({
+    const query = this.sharedConn
+      .getRepository(ChatConversationOrm)
+      .createQueryBuilder('conversation');
+    query.setFindOptions({
       where: [{ firstUserId: userId }, { secondUserId: userId }],
       relations: [
         'firstUser',
@@ -23,6 +27,15 @@ export class ChatListForImpl extends ChatStoreSharedSource {
       ],
       order: { updatedAt: 'DESC' },
     });
+    const conversations = await query
+      .andWhere(
+        chatAccessPredicate(
+          ':accessUserId',
+          'CASE WHEN "conversation"."CHATUSUREG1" = :accessUserId THEN "conversation"."CHATUSUREG2" ELSE "conversation"."CHATUSUREG1" END'
+        ),
+        { accessUserId: userId }
+      )
+      .getMany();
 
     const conversationIds = conversations.map(conversation => conversation.id);
     const unreadStates = await this.unreadStatesFor(userId, conversationIds);

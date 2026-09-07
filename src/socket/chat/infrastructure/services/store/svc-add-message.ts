@@ -19,7 +19,7 @@ export class ChatAddMessageImpl extends ChatStoreSharedSource {
     attachments: string[],
     replyToMessageId?: number
   ): Promise<ChatMessage | undefined> {
-    return this.sharedConn.transaction(async manager => {
+    return this.sharedConn.transaction('SERIALIZABLE', async manager => {
       const conversationRepository = manager.getRepository(ChatConversationOrm);
       const messageRepository = manager.getRepository(ChatMessageOrm);
       const attachmentRepository = manager.getRepository(ChatMessageAttachmentOrm);
@@ -30,7 +30,8 @@ export class ChatAddMessageImpl extends ChatStoreSharedSource {
       if (!conversation || !this.hasParticipant(conversation, currentUser.id)) return undefined;
 
       const recipient = this.otherParticipant(conversation, currentUser.id);
-      if (!recipient) return undefined;
+      if (!recipient || !(await this.access.canContact(currentUser.id, recipient.id, manager)))
+        return undefined;
 
       const replyToMessage = replyToMessageId
         ? await messageRepository.findOne({
@@ -65,6 +66,8 @@ export class ChatAddMessageImpl extends ChatStoreSharedSource {
           )
         : [];
       message.replyToMessage = replyToMessage;
+
+      await this.access.linkAfterMessage(currentUser.id, recipient.id, manager);
 
       conversation.lastMessageId = message.id;
       conversation.lastSenderUserId = currentUser.id;

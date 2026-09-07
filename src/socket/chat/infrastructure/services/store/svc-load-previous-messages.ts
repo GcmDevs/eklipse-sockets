@@ -10,7 +10,8 @@ export class ChatLoadPreviousMessagesImpl extends ChatStoreSharedSource {
     beforeMessageId: number
   ): Promise<ChatMessagePage | undefined> {
     const conversation = await this.findConversationById(conversationId);
-    if (!conversation || !this.hasParticipant(conversation, currentUser.id)) return undefined;
+    if (!conversation || !(await this.canAccessConversation(conversation, currentUser.id)))
+      return undefined;
 
     return this.messagePage(conversationId, beforeMessageId);
   }

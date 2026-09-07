@@ -14,6 +14,9 @@ export class ChatStartImpl extends ChatStoreSharedSource {
       (left, right) => left.id - right.id
     );
     const conversationId = await this.sharedConn.transaction('SERIALIZABLE', async manager => {
+      if (!(await this.access.canContact(currentUser.id, contact.id, manager))) {
+        throw new Error('Chat contact is unavailable');
+      }
       const repository = manager.getRepository(ChatConversationOrm);
       const existing = await repository.findOne({
         where: { firstUserId: firstUser.id, secondUserId: secondUser.id },

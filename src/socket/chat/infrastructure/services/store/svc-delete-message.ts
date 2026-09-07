@@ -23,6 +23,9 @@ export class ChatDeleteMessageImpl extends ChatStoreSharedSource {
       });
       const error = this.messageMutationErrorFor(message, currentUser.id);
       if (error) return { ok: false, error };
+      if (!(await this.access.canContact(currentUser.id, message.recipientUserId, manager))) {
+        return { ok: false, error: 'forbidden' };
+      }
 
       message.deletedAt = new Date();
       await repository.save(message);

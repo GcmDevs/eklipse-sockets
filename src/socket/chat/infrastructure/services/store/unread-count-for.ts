@@ -1,3 +1,4 @@
+import { chatAccessPredicate } from '../access';
 import { Injectable } from '@nestjs/common';
 import { ChatConversationReadOrm, ChatMessageOrm } from '@socket/chat/infrastructure/orm';
 import { ChatStoreSharedSource } from './shared-source';
@@ -17,6 +18,7 @@ export class ChatUnreadCountForImpl extends ChatStoreSharedSource {
       .select('COUNT(message.id)', 'unreadCount')
       .where('message.recipientUserId = :userId', { userId })
       .andWhere('message.id > COALESCE(reading.lastReadMessageId, 0)')
+      .andWhere(chatAccessPredicate(':userId', '"message"."CHATUSUREG1"'))
       .andWhere('message.deletedAt IS NULL')
       .getRawOne<{ unreadCount: number | string }>();
 

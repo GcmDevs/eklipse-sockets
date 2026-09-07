@@ -6,7 +6,6 @@ import type {
   RegisteredChatUser,
   SearchChatUsersPayload,
 } from '@socket/chat/domain/types';
-import { ALTOS_MANDOS } from '@socket/common';
 import { SharedChatGateway } from './gtw-shared';
 
 @Injectable()
@@ -27,12 +26,7 @@ export class SearchUsersImpl extends SharedChatGateway {
     }
 
     try {
-      const excludedDocuments = this.canTalkWithAltosMandos(currentUser.document)
-        ? []
-        : ALTOS_MANDOS;
-      const contacts = (
-        await this.directory.search(query, currentUser.document, excludedDocuments)
-      ).map(user => ({
+      const contacts = (await this.directory.search(query, currentUser.id)).map(user => ({
         document: user.document,
         name: user.name,
         online: this.isOnline(user.document),

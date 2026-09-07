@@ -12,12 +12,8 @@ export class ChatDirectoryService {
     private readonly _findByIds: ChatDirectoryFindByIdsImpl
   ) {}
 
-  async search(
-    query: string,
-    excludeDocument = '',
-    excludedDocuments: readonly string[] = []
-  ): Promise<RegisteredChatUser[]> {
-    return this._search.execute(query, excludeDocument, excludedDocuments);
+  async search(query: string, actorId: number): Promise<RegisteredChatUser[]> {
+    return this._search.execute(query, actorId);
   }
 
   async findByDocument(document: unknown): Promise<RegisteredChatUser | undefined> {
