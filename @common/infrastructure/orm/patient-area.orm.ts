@@ -1,4 +1,4 @@
-import { Column, Entity, JoinTable, ManyToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, ManyToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { _PrivSecPacAsUserOrm } from './patient-as-user.orm';
 
 @Entity('APPACUSUAREA')

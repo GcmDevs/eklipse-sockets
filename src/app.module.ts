@@ -10,14 +10,14 @@ import {
 import { promises as fs } from 'fs';
 import { resolve } from 'path';
 import { FileSaverModule } from './file-saver/module';
-import { SocketsControllers } from '@socket/controllers';
+import { ManagerModule } from './manager/module';
 import { SocketModule } from '@socket/module';
 
 @Module({
   imports: [
     // --- AVOID NOWRAP --- //
     FileSaverModule,
-    SocketsControllers,
+    ManagerModule,
     SocketModule,
   ],
 })
