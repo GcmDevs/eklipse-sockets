@@ -3,13 +3,17 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
-import { In } from 'typeorm';
+import { EntityManager, In } from 'typeorm';
 import { JWTServices, CRYPTO_SERVICES } from '@common/application/services';
-import { switchConn } from '@common/infrastructure/services';
+import { TIPOS_USUARIO } from '@common/domain/types';
+import { switchConn, switchSocketsConn } from '@common/infrastructure/services';
 import { _PrivSecPacAreaOrm } from '@common/infrastructure/orm/patient-area.orm';
 import { _PrivSecPacAsUserOrm } from '@common/infrastructure/orm/patient-as-user.orm';
 import { _PrivSecPacOrm } from '@common/infrastructure/orm/patient.orm';
+import { SocketUserOrm } from '@socket/common/infrastructure/orm';
+import { ChatAccessService } from '@socket/chat/infrastructure/services/access';
 
 const PAGE_SIZE = 20;
 const tokenFrom = (authorization: string) => authorization?.split(' ')[1] ?? '';
@@ -17,6 +21,8 @@ const escapeLike = (value: string) => value.trim().replace(/[!%_[]/g, char => `!
 
 @Injectable()
 export class PatientAccessService {
+  constructor(private readonly chatAccess: ChatAccessService) {}
+
   async areas(authorization: string) {
     const conn = this.connection(authorization);
     const areas = await conn.getRepository(_PrivSecPacAreaOrm).find({ order: { nombre: 'ASC' } });
@@ -81,6 +87,7 @@ export class PatientAccessService {
 
   async create(authorization: string, patientId: number, areaIds: number[]) {
     const conn = this.connection(authorization);
+    const currentUser = JWTServices.decodeToken(tokenFrom(authorization)).user;
     try {
       return await conn.transaction('SERIALIZABLE', async manager => {
         const patient = await manager.getRepository(_PrivSecPacOrm).findOneBy({ id: patientId });
@@ -101,7 +108,13 @@ export class PatientAccessService {
           passwordIsReset: true,
           areas,
         });
-        return this.publicUser(await repository.save(user));
+        const savedUser = await repository.save(user);
+        await this.registerChatUser(
+          patient.documento,
+          patient.nombreCompleto,
+          currentUser.document
+        );
+        return this.publicUser(savedUser);
       });
     } catch (error: any) {
       if (error?.number === 2601 || error?.number === 2627) {
@@ -132,6 +145,54 @@ export class PatientAccessService {
       throw new BadRequestException('Una de las áreas seleccionadas ya no está disponible.');
     }
     return areas as _PrivSecPacAreaOrm[];
+  }
+
+  private async registerChatUser(
+    document: string,
+    fullName: string,
+    addedByDocument: string
+  ): Promise<void> {
+    const connection = switchSocketsConn();
+    if (!connection.isInitialized) {
+      throw new ServiceUnavailableException('La base de datos del chat no está disponible.');
+    }
+
+    await connection.transaction('SERIALIZABLE', async (manager: EntityManager) => {
+      const users = manager.getRepository(SocketUserOrm);
+      const existingPatient = await users.findOneBy({ document: String(document).trim() });
+      if (existingPatient) return;
+
+      const addedBy = await users.findOneBy({ document: String(addedByDocument).trim() });
+      if (!addedBy) {
+        throw new ServiceUnavailableException(
+          'La persona que habilita al paciente no está registrada en el chat.'
+        );
+      }
+
+      await users
+        .createQueryBuilder()
+        .insert()
+        .into(SocketUserOrm)
+        .values({
+          document: String(document).trim(),
+          fullName: String(fullName).trim(),
+          typeCode: TIPOS_USUARIO.PACIENTE.getCode(),
+        })
+        .orIgnore()
+        .execute();
+
+      const patient = await users.findOneByOrFail({ document: String(document).trim() });
+      await this.chatAccess.configure(
+        patient.id,
+        {
+          incomingRestricted: true,
+          contactsRestricted: true,
+          discoverAll: false,
+        },
+        [addedBy.id],
+        manager
+      );
+    });
   }
 
   private publicUser(user: _PrivSecPacAsUserOrm) {

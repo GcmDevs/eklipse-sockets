@@ -114,5 +114,6 @@ const GATEWAYS_SERVICES = [
     ...STORE_SERVICES,
     ...GATEWAYS_SERVICES,
   ],
+  exports: [ChatAccessService],
 })
 export class ChatModule {}
