@@ -7,6 +7,7 @@ import type {
   ChatMessageMutationResult,
   ChatMessagePage,
   RegisteredChatUser,
+  ChatEntityReference,
 } from '@socket/chat/domain/types';
 import { ChatAddMessageImpl } from './svc-add-message';
 import { ChatDeleteMessageImpl } from './svc-delete-message';
@@ -41,9 +42,10 @@ export class ChatStoreService {
   async start(
     currentUser: RegisteredChatUser,
     contact: RegisteredChatUser,
-    isOnline: (document: string) => boolean
+    isOnline: (document: string) => boolean,
+    entity: ChatEntityReference | null = null
   ): Promise<ChatConversationDetails> {
-    return this._start.execute(currentUser, contact, isOnline);
+    return this._start.execute(currentUser, contact, isOnline, entity);
   }
 
   async open(

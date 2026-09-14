@@ -1,14 +1,20 @@
 import { ChatConversationOrm } from '@socket/chat/infrastructure/orm';
-import type { ChatConversationDetails, RegisteredChatUser } from '@socket/chat/domain/types';
+import type {
+  ChatConversationDetails,
+  ChatEntityReference,
+  RegisteredChatUser,
+} from '@socket/chat/domain/types';
 import { ChatStoreSharedSource } from './shared-source';
 import { Injectable } from '@nestjs/common';
+import { IsNull } from 'typeorm';
 
 @Injectable()
 export class ChatStartImpl extends ChatStoreSharedSource {
   async execute(
     currentUser: RegisteredChatUser,
     contact: RegisteredChatUser,
-    isOnline: (document: string) => boolean
+    isOnline: (document: string) => boolean,
+    entity: ChatEntityReference | null
   ): Promise<ChatConversationDetails> {
     const [firstUser, secondUser] = [currentUser, contact].sort(
       (left, right) => left.id - right.id
@@ -19,7 +25,21 @@ export class ChatStartImpl extends ChatStoreSharedSource {
       }
       const repository = manager.getRepository(ChatConversationOrm);
       const existing = await repository.findOne({
-        where: { firstUserId: firstUser.id, secondUserId: secondUser.id },
+        where: entity
+          ? {
+              firstUserId: firstUser.id,
+              secondUserId: secondUser.id,
+              entityId: entity.id,
+              entityType: entity.type,
+              context: entity.context,
+            }
+          : {
+              firstUserId: firstUser.id,
+              secondUserId: secondUser.id,
+              entityId: IsNull(),
+              entityType: IsNull(),
+              context: IsNull(),
+            },
       });
       if (existing) return existing.id;
 
@@ -28,6 +48,10 @@ export class ChatStartImpl extends ChatStoreSharedSource {
         repository.create({
           firstUserId: firstUser.id,
           secondUserId: secondUser.id,
+          entityId: entity?.id ?? null,
+          entityCode: entity?.code ?? null,
+          entityType: entity?.type ?? null,
+          context: entity?.context ?? null,
           createdAt: now,
           updatedAt: now,
         })

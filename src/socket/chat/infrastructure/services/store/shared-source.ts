@@ -13,7 +13,11 @@ import type {
   ChatConversationSummary,
   ChatMessagePage,
 } from '@socket/chat/domain/types';
-import { CHAT_MESSAGE_MUTATION_WINDOW_MS, normalizeDocument } from '@socket/chat/domain/types';
+import {
+  CHAT_MESSAGE_MUTATION_WINDOW_MS,
+  entidadTypeFactory,
+  normalizeDocument,
+} from '@socket/chat/domain/types';
 import {
   ChatConversationOrm,
   ChatMessageOrm,
@@ -122,6 +126,18 @@ export class ChatStoreSharedSource {
 
     return {
       id: conversation.id,
+      entity:
+        conversation.entityId && conversation.entityType && conversation.context
+          ? {
+              id: conversation.entityId,
+              code: conversation.entityCode ?? null,
+              type: conversation.entityType as import('@socket/chat/domain/types').EntidadCode,
+              typeForHumans: entidadTypeFactory(
+                conversation.entityType as import('@socket/chat/domain/types').EntidadCode
+              ).getForHumans(),
+              context: conversation.context,
+            }
+          : null,
       contact: {
         document: contact.document,
         name: contact.name,

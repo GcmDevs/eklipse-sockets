@@ -1,3 +1,7 @@
+import type { EntidadCode } from './tipo-entidad.type';
+
+export * from './tipo-entidad.type';
+
 export interface ChatUser {
   document: string;
   name: string;
@@ -34,12 +38,21 @@ export interface ChatMessage {
 
 export interface ChatConversationSummary {
   id: number;
+  entity: ChatEntityReference | null;
   contact: ChatContact;
   lastMessage: ChatMessage | null;
   lastReadMessageId: number | null;
   unreadCount: number;
   hidden: boolean;
   updatedAt: string;
+}
+
+export interface ChatEntityReference {
+  id: number;
+  code: string | null;
+  type: EntidadCode;
+  typeForHumans: string;
+  context: string;
 }
 
 export interface ChatConversationHidden {
@@ -96,6 +109,7 @@ export interface ChatTypingState {
 
 export interface StartConversationPayload {
   document?: unknown;
+  entity?: unknown;
 }
 
 export interface SearchChatUsersPayload {
