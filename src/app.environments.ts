@@ -4,7 +4,7 @@ const production = processEnv.PRODUCTION;
 const showDocs = processEnv.SHOW_DOCS;
 const isHttps = processEnv.IS_HTTPS;
 const apiUrlBase = generateApiUrlBase();
-const port = 3000;
+const port = 7006;
 
 export const ENVIRONMENTS = {
   production,
@@ -16,4 +16,4 @@ export const ENVIRONMENTS = {
   chatEncryptionKey: processEnv.CHAT_ENCRYPTION_KEY,
 };
 
-export const VALID_HOSTS = [...GLOBAL_VALID_HOSTS, 'http://localhost:5173'];
+export const VALID_HOSTS = [...GLOBAL_VALID_HOSTS];
