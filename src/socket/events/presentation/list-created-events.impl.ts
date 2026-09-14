@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { Socket } from 'socket.io';
-import { PATIENTS_FRONTEND_CLIENT } from '@socket/common/constants';
+import { EKLIPSE_FRONTEND_CLIENT } from '@socket/common/constants';
 import type { SocketUser } from '@socket/common/types';
 import type { EventActionAck, RegisteredEventData } from '@socket/events/domain/types';
 import { EventStoreService } from '@socket/events/infrastructure/services';
@@ -17,8 +17,8 @@ export class ListCreatedEventsImpl {
     if (currentUser.role !== 'USUARIO') {
       return { ok: false, error: 'Solo los usuarios internos pueden consultar sus eventos.' };
     }
-    if (currentUser.clientApp !== PATIENTS_FRONTEND_CLIENT) {
-      return { ok: false, error: 'Este canal solo admite el frontend de pacientes.' };
+    if (currentUser.clientApp !== EKLIPSE_FRONTEND_CLIENT) {
+      return { ok: false, error: 'La gestión de eventos solo está disponible en Eklipse.' };
     }
 
     try {

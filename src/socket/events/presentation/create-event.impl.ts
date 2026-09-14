@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { Socket } from 'socket.io';
 import { SocketClientRegistry } from '@socket/common/client-registry';
-import { PATIENTS_FRONTEND_CLIENT } from '@socket/common/constants';
+import { EKLIPSE_FRONTEND_CLIENT, PATIENTS_FRONTEND_CLIENT } from '@socket/common/constants';
 import { SOCKET_EVENTS } from '@socket/common/application/constants/events';
 import type { SocketUser } from '@socket/common/types';
 import {
@@ -30,8 +30,8 @@ export class CreateEventImpl {
     if (currentUser.role !== 'USUARIO') {
       return { ok: false, error: 'Solo los usuarios internos pueden crear eventos.' };
     }
-    if (currentUser.clientApp !== PATIENTS_FRONTEND_CLIENT) {
-      return { ok: false, error: 'Este canal solo admite eventos del frontend de pacientes.' };
+    if (currentUser.clientApp !== EKLIPSE_FRONTEND_CLIENT) {
+      return { ok: false, error: 'La gestión de eventos solo está disponible en Eklipse.' };
     }
 
     const validation = validateEventInput(payload, true);
