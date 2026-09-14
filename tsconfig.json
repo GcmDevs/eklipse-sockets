@@ -20,7 +20,7 @@
       "@env": ["./env"],
       "@rsa/*": ["./rsa/*"],
       "@common/*": ["./@common/*"],
-      "@authorities": ["./authorities"],
+      "@authorities": ["./@authorities"],
       "@types/*": ["./@types/*"],
       "@orm/*": ["./@orm/*"],
       "@file-saver/*": ["./src/file-saver/*"],

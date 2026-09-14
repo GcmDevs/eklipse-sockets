@@ -8,6 +8,7 @@ import {
   PatientAccessParams,
   UpdatePatientAreasDto,
 } from '../dtos';
+import { GEN_AUTHS } from '@authorities';
 
 @ApiTags('Acceso de pacientes a eventos')
 @CommonGuards()
@@ -15,14 +16,17 @@ import {
 export class PatientAccessController {
   constructor(private readonly service: PatientAccessService) {}
 
-  @Authorities()
+  @Authorities([
+    GEN_AUTHS.pacientes.habilitarPacienteApp,
+    GEN_AUTHS.pacientes.addPacienteToArea,
+  ])
   @Get('areas')
   @ApiOperation({ summary: 'Listar áreas disponibles para pacientes' })
   areas(@Headers('authorization') authorization: string) {
     return this.service.areas(authorization);
   }
 
-  @Authorities()
+  @Authorities([GEN_AUTHS.pacientes.habilitarPacienteApp])
   @Get('candidates')
   @ApiOperation({ summary: 'Buscar pacientes que aún no son usuarios' })
   candidates(
@@ -32,21 +36,21 @@ export class PatientAccessController {
     return this.service.candidates(authorization, query.query, query.page);
   }
 
-  @Authorities()
+  @Authorities([GEN_AUTHS.pacientes.addPacienteToArea])
   @Get('users')
   @ApiOperation({ summary: 'Buscar pacientes registrados como usuarios' })
   users(@Headers('authorization') authorization: string, @Query() query: PatientAccessSearchDto) {
     return this.service.users(authorization, query.query, query.page);
   }
 
-  @Authorities()
+  @Authorities([GEN_AUTHS.pacientes.habilitarPacienteApp])
   @Post('users')
   @ApiOperation({ summary: 'Registrar un paciente como usuario y asignarle áreas' })
   create(@Headers('authorization') authorization: string, @Body() body: CreatePatientAccessDto) {
     return this.service.create(authorization, body.patientId, body.areaIds);
   }
 
-  @Authorities()
+  @Authorities([GEN_AUTHS.pacientes.addPacienteToArea])
   @Put('users/:userId/areas')
   @ApiOperation({ summary: 'Reemplazar las áreas asignadas a un paciente usuario' })
   updateAreas(
