@@ -30,6 +30,7 @@ export class SearchUsersImpl extends SharedChatGateway {
         document: user.document,
         name: user.name,
         online: this.isOnline(user.document),
+        isActive: user.isActive,
       }));
 
       return { ok: true, data: contacts };

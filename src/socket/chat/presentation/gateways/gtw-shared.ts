@@ -57,6 +57,7 @@ export class SharedChatGateway {
       conversations,
       notifications: { unreadCount },
       security: this.securityStateFor(client),
+      currentUserActive: user.isActive,
       ...(this.canViewOnlineUsersCount(user.document)
         ? { onlineUsersCount: this.onlineChatDocuments().length }
         : {}),

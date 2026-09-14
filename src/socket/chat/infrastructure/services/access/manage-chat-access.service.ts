@@ -22,6 +22,7 @@ const publicUser = (user: SocketUserOrm) => ({
   document: user.document,
   name: user.fullName,
   typeCode: user.typeCode,
+  isActive: user.isActive,
 });
 
 type ChatManagementScope = {
@@ -88,7 +89,7 @@ export class ManageChatAccessService {
         createdAt: new Date(row.createdAt).toISOString(),
       })),
       revision: createHash('sha256')
-        .update(JSON.stringify([values, contacts.map(row => row.contactUserId)]))
+        .update(JSON.stringify([user.isActive, values, contacts.map(row => row.contactUserId)]))
         .digest('hex'),
     };
   }
@@ -97,6 +98,7 @@ export class ManageChatAccessService {
     userId: number,
     policy: ChatAccessPolicy,
     contactUserIds: number[],
+    isActive: boolean,
     revision: string
   ) {
     if (contactUserIds.includes(userId))
@@ -115,6 +117,7 @@ export class ManageChatAccessService {
           if (count !== contactUserIds.length)
             throw new BadRequestException('Uno de los contactos ya no está registrado.');
         }
+        await manager.getRepository(SocketUserOrm).update({ id: userId }, { isActive });
         await this.access.configure(userId, policy, contactUserIds, manager);
         return this.details(userId, manager);
       });
@@ -132,10 +135,11 @@ export class ManageChatAccessService {
     userId: number,
     policy: ChatAccessPolicy,
     contactUserIds: number[],
+    isActive: boolean,
     revision: string
   ) {
     await this.requireManageableUser(authorization, userId);
-    return this.update(userId, policy, contactUserIds, revision);
+    return this.update(userId, policy, contactUserIds, isActive, revision);
   }
 
   async revokeLink(userId: number, contactId: number) {

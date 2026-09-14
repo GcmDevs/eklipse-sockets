@@ -126,6 +126,7 @@ export class ChatStoreSharedSource {
         document: contact.document,
         name: contact.name,
         online: isOnline(contact.document),
+        isActive: contact.isActive,
       },
       lastMessage,
       lastReadMessageId,
@@ -285,18 +286,25 @@ export class ChatStoreSharedSource {
     id: number;
     document: string;
     fullName: string;
+    isActive: boolean;
   }): RegisteredChatUser {
     return {
       id: Number(user.id),
       document: normalizeDocument(String(user.document ?? '')),
       name: String(user.fullName ?? '').trim(),
+      isActive: user.isActive !== false,
     };
   }
 
-  protected toChatUser(user: { document: string; fullName: string }): ChatUser {
+  protected toChatUser(user: {
+    document: string;
+    fullName: string;
+    isActive: boolean;
+  }): ChatUser {
     return {
       document: normalizeDocument(String(user.document ?? '')),
       name: String(user.fullName ?? '').trim(),
+      isActive: user.isActive !== false,
     };
   }
 
@@ -306,7 +314,7 @@ export class ChatStoreSharedSource {
     document?: string
   ): ChatMessage {
     const publicSender = sender
-      ? { document: sender.document, name: sender.name }
+      ? { document: sender.document, name: sender.name, isActive: sender.isActive }
       : this.toChatUser(message.senderUser);
 
     return {

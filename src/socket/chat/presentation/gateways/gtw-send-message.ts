@@ -96,6 +96,17 @@ export class SendMessageImpl extends SharedChatGateway {
       if (!registeredCurrentUser || registeredCurrentUser.document !== currentUser.document) {
         return this.rejectedMessage('Tu usuario ya no está registrado para utilizar el chat.');
       }
+      if (!registeredCurrentUser.isActive) {
+        return this.rejectedMessage(
+          'Tu usuario de chat está inactivo. Comunícate con el administrador para que sea activado nuevamente.'
+        );
+      }
+      const inactiveContact = registeredParticipants.find(
+        participant => participant.id !== currentUser.id && !participant.isActive
+      );
+      if (inactiveContact) {
+        return this.rejectedMessage('Ya no es posible comunicarse con esta persona.');
+      }
 
       if (attachments.length && !this.fileRegistry.reserve(attachments, currentUser.document)) {
         return this.rejectedMessage('Los archivos adjuntos ya no están disponibles.');

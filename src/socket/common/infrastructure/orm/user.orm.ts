@@ -15,4 +15,7 @@ export class SocketUserOrm {
 
   @Column({ name: 'TIPOUSUARIO', type: 'smallint', default: TIPOS_USUARIO.USUARIO.getCode() })
   typeCode: TipoUsuarioCode;
+
+  @Column({ name: 'ISACTIVO', default: true })
+  isActive: boolean;
 }

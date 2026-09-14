@@ -49,6 +49,7 @@ export class ChatAccessController {
       params.userId,
       body,
       body.contactUserIds,
+      body.isActive,
       body.revision
     );
   }

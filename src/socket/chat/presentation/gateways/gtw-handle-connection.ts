@@ -50,6 +50,7 @@ export class handleConnectionImpl extends SharedChatGateway {
         conversations: [],
         notifications: { unreadCount: 0 },
         security: this.securityStateFor(client),
+        currentUserActive: user.isActive,
       } satisfies ChatBootstrap);
     }
     void this.emitPresence(user);

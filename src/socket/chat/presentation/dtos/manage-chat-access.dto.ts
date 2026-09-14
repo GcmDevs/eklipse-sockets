@@ -45,6 +45,7 @@ export class ChatAccessLinkParams extends ChatAccessUserParams {
   contactId: number;
 }
 export class UpdateChatAccessDto {
+  @IsBoolean() isActive: boolean;
   @IsBoolean() incomingRestricted: boolean;
   @IsBoolean() contactsRestricted: boolean;
   @IsBoolean() discoverAll: boolean;

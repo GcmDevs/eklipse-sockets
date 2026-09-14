@@ -15,6 +15,8 @@ export class ChatDirectorySharedSource {
     const id = Number(record.id);
     const document = normalizeDocument(String(record.document ?? ''));
     const name = String(record.fullName ?? '').trim();
-    return Number.isInteger(id) && id > 0 && document && name ? { id, document, name } : undefined;
+    return Number.isInteger(id) && id > 0 && document && name
+      ? { id, document, name, isActive: record.isActive !== false }
+      : undefined;
   }
 }

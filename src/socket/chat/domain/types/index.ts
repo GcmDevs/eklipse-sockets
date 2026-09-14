@@ -1,6 +1,7 @@
 export interface ChatUser {
   document: string;
   name: string;
+  isActive: boolean;
 }
 
 export interface RegisteredChatUser extends ChatUser {
@@ -60,6 +61,7 @@ export interface ChatBootstrap {
   onlineUsersCount?: number;
   notifications: ChatNotificationState;
   security: ChatSecurityState;
+  currentUserActive: boolean;
 }
 
 export interface ChatNotificationState {
